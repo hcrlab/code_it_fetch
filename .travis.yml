@@ -41,5 +41,16 @@ install:
 - catkin_init_workspace
 - cd ~/catkin_ws/
 - rosdep install --from-paths src --ignore-src --rosdistro=${ROS_DISTRO} -y -q
+# Install latest gmock
+- mkdir ~/local
+- cd ~/local
+- git clone https://github.com/google/googletest.git
+- cd ~/local/googletest
+- mkdir mybuild
+- cd ~/local/googletest/mybuild
+- cmake ..
+- make
+- sudo make install
+# Build
 - cd ~/catkin_ws/
 - catkin build code_it_fetch
