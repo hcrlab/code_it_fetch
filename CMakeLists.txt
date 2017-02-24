@@ -8,6 +8,7 @@ project(code_it_fetch)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  code_it_msgs
   rapid_fetch
   roscpp
   rospy
