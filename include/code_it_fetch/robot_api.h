@@ -22,7 +22,7 @@ static const char OPEN_GRIPPER[] = "Failed to open gripper.";
 class RobotApi {
  public:
   // Does not take ownership of the Fetch pointer.
-  RobotApi(rapid::Fetch::Fetch* robot);
+  RobotApi(rapid::fetch::Fetch* robot);
   bool AskMultipleChoice(code_it_msgs::AskMultipleChoiceRequest& req,
                          code_it_msgs::AskMultipleChoiceResponse& res);
   bool DisplayMessage(code_it_msgs::DisplayMessageRequest& req,
