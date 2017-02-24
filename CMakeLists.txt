@@ -9,6 +9,7 @@ project(code_it_fetch)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   code_it_msgs
+  rapid_display
   rapid_fetch
   roscpp
   rospy
@@ -104,9 +105,9 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES code_it_fetch
-#  CATKIN_DEPENDS rapid_fetch roscpp rospy
+  INCLUDE_DIRS include
+  LIBRARIES code_it_fetch_api
+  CATKIN_DEPENDS rapid_fetch roscpp rospy
 #  DEPENDS system_lib
 )
 
@@ -118,13 +119,21 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
+  include
   ${catkin_INCLUDE_DIRS}
 )
 
-## Declare a C++ library
-# add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/code_it_fetch.cpp
-# )
+add_library(${PROJECT_NAME}_api src/robot_api.cpp)
+add_dependencies(${PROJECT_NAME}_api ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(${PROJECT_NAME}_api ${catkin_LIBRARIES})
+
+add_executable(${PROJECT_NAME}_node src/main_node.cpp)
+set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME main_node PREFIX "")
+add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(${PROJECT_NAME}_node
+  ${PROJECT_NAME}_api
+  ${catkin_LIBRARIES}
+)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
