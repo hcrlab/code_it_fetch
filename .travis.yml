@@ -51,6 +51,7 @@ install:
 - cmake ..
 - make
 - sudo make install
+script:
 # Build
 - cd ~/catkin_ws/
 - catkin build code_it_fetch
