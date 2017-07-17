@@ -7,6 +7,7 @@
 #include "code_it_msgs/DisplayMessage.h"
 #include "code_it_msgs/Say.h"
 #include "code_it_msgs/SetGripper.h"
+#include "code_it_msgs/SetTorso.h"
 #include "rapid_fetch/fetch.h"
 #include "ros/ros.h"
 #include "std_msgs/Bool.h"
@@ -30,6 +31,7 @@ class RobotApi {
   bool Say(code_it_msgs::SayRequest& req, code_it_msgs::SayResponse& res);
   bool SetGripper(code_it_msgs::SetGripperRequest& req,
                   code_it_msgs::SetGripperResponse& res);
+  bool SetTorso(code_it_msgs::SetTorsoRequest& req, code_it_msgs::SetTorsoResponse& res);
   void HandleProgramStopped(const std_msgs::Bool& msg);
 
  private:

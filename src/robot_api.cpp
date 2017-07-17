@@ -1,5 +1,6 @@
 #include "code_it_fetch/robot_api.h"
-
+#include "control_msgs/FollowJointTrajectoryAction.h"
+#include <actionlib/client/simple_action_client.h>
 #include <string>
 #include <vector>
 
@@ -51,6 +52,40 @@ bool RobotApi::SetGripper(code_it_msgs::SetGripperRequest& req,
     robot_->gripper->Close(req.max_effort);
   }
   return true;
+}
+
+bool RobotApi::SetTorso(code_it_msgs::SetTorsoRequest& req, code_it_msgs::SetTorsoResponse& res){
+    float height = req.height;
+    float maxHeight = 0.4;
+    float minHeight = 0.0;
+    int TIME_FROM_START = 5; //Time in seconds
+    string JOINT_NAME = "torso_lift_joint";
+
+    height = (height < minHeight) ? minHeight: height; //Makes sure height is within bounds
+    height = (height > maxHeight) ? maxHeight: height;
+
+    actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> client("torso_controller/follow_joint_trajectory", true);
+    bool serverConnected = client.waitForServer(ros::Duration(5));
+    if(serverConnected) {
+        trajectory_msgs::JointTrajectoryPoint point;
+        point.positions.push_back(height);
+        point.time_from_start = ros::Duration(TIME_FROM_START, 0);
+        control_msgs::FollowJointTrajectoryGoal goal;
+        trajectory_msgs::JointTrajectory trajectory;
+        trajectory.joint_names.push_back(JOINT_NAME);
+        trajectory.points.push_back(point);
+        goal.trajectory = trajectory;
+        client.sendGoal(goal);
+        std::cout << "Waiting for result" << std::endl;
+        bool success = client.waitForResult();
+        std::cout << "Result received" << std::endl;
+        return success;
+    }
+    else{
+        std::cerr << "The torso server did not connect" << std::endl;
+        return  false;
+    }
+
 }
 
 void RobotApi::HandleProgramStopped(const std_msgs::Bool& msg) {
