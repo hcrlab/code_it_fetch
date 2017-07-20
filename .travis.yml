@@ -34,10 +34,11 @@ install:
 - cd ~/catkin_ws/src
 - git clone https://github.com/hcrlab/blinky.git
 - git clone https://github.com/hcrlab/code_it_msgs.git
+- git clone https://github.com/jstnhuang/map_annotator.git
 - git clone https://github.com/jstnhuang/mongo_msg_db.git
 - git clone https://github.com/jstnhuang/mongo_msg_db_msgs.git
 - git clone https://github.com/jstnhuang/rapid.git
-- git clone https://github.com/jstnhuang/stf.git
+- git clone https://github.com/jstnhuang/transform_graph.git
 - catkin_init_workspace
 - cd ~/catkin_ws/
 - rosdep install --from-paths src --ignore-src --rosdistro=${ROS_DISTRO} -y -q

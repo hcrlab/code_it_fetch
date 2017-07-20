@@ -6,20 +6,29 @@
 #include "actionlib/client/simple_action_client.h"
 #include "code_it_msgs/AskMultipleChoice.h"
 #include "code_it_msgs/DisplayMessage.h"
+#include "code_it_msgs/GoTo.h"
 #include "code_it_msgs/Say.h"
 #include "code_it_msgs/SetGripper.h"
 #include "control_msgs/FollowJointTrajectoryAction.h"
+#include "map_annotator/GoToLocationAction.h"
 #include "rapid_fetch/fetch.h"
 #include "ros/ros.h"
 #include "std_msgs/Bool.h"
 
 using std::string;
 
-namespace code_it_fetch {
-RobotApi::RobotApi(rapid::fetch::Fetch* robot) : robot_(robot) {}
+typedef actionlib::SimpleActionClient<map_annotator::GoToLocationAction>
+    NavClient;
+typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
+    TorsoClient;
 
-bool RobotApi::AskMultipleChoice(code_it_msgs::AskMultipleChoiceRequest& req,
-                                 code_it_msgs::AskMultipleChoiceResponse& res) {
+namespace code_it_fetch {
+RobotApi::RobotApi(rapid::fetch::Fetch *robot, NavClient *nav_client,
+                   TorsoClient *torso_client)
+    : robot_(robot), nav_client_(nav_client), torso_client_(torso_client) {}
+
+bool RobotApi::AskMultipleChoice(code_it_msgs::AskMultipleChoiceRequest &req,
+                                 code_it_msgs::AskMultipleChoiceResponse &res) {
   string choice;
   bool success =
       robot_->display->AskMultipleChoice(req.question, req.choices, &choice);
@@ -30,8 +39,8 @@ bool RobotApi::AskMultipleChoice(code_it_msgs::AskMultipleChoiceRequest& req,
   return true;
 }
 
-bool RobotApi::DisplayMessage(code_it_msgs::DisplayMessageRequest& req,
-                              code_it_msgs::DisplayMessageResponse& res) {
+bool RobotApi::DisplayMessage(code_it_msgs::DisplayMessageRequest &req,
+                              code_it_msgs::DisplayMessageResponse &res) {
   bool success = robot_->display->ShowMessage(req.h1_text, req.h2_text);
   if (!success) {
     res.error = errors::DISPLAY_MESSAGE;
@@ -39,14 +48,33 @@ bool RobotApi::DisplayMessage(code_it_msgs::DisplayMessageRequest& req,
   return true;
 }
 
-bool RobotApi::Say(code_it_msgs::SayRequest& req,
-                   code_it_msgs::SayResponse& res) {
+bool RobotApi::Say(code_it_msgs::SayRequest &req,
+                   code_it_msgs::SayResponse &res) {
   robot_->Say(req.text);
   return true;
 }
 
-bool RobotApi::SetGripper(code_it_msgs::SetGripperRequest& req,
-                          code_it_msgs::SetGripperResponse& res) {
+bool RobotApi::GoTo(code_it_msgs::GoToRequest &req,
+                    code_it_msgs::GoToResponse &res) {
+  map_annotator::GoToLocationGoal goal;
+  goal.name = req.location;
+  nav_client_->sendGoal(goal);
+  bool success = nav_client_->waitForResult(ros::Duration(60 * 60));
+  if (!success) {
+    res.error = "Navigation did not finish within an hour.";
+    return true;
+  }
+  map_annotator::GoToLocationResultConstPtr result = nav_client_->getResult();
+  if (!result) {
+    res.error = "Error with navigation server";
+    return true;
+  }
+  res.error = result->error;
+  return true;
+}
+
+bool RobotApi::SetGripper(code_it_msgs::SetGripperRequest &req,
+                          code_it_msgs::SetGripperResponse &res) {
   if (req.action == code_it_msgs::SetGripperRequest::OPEN) {
     robot_->gripper->Open(req.max_effort);
   } else if (req.action == code_it_msgs::SetGripperRequest::CLOSE) {
@@ -55,8 +83,8 @@ bool RobotApi::SetGripper(code_it_msgs::SetGripperRequest& req,
   return true;
 }
 
-bool RobotApi::SetTorso(code_it_msgs::SetTorsoRequest& req,
-                        code_it_msgs::SetTorsoResponse& res) {
+bool RobotApi::SetTorso(code_it_msgs::SetTorsoRequest &req,
+                        code_it_msgs::SetTorsoResponse &res) {
   float height = req.height;
   float maxHeight = 0.4;
   float minHeight = 0.0;
@@ -67,30 +95,23 @@ bool RobotApi::SetTorso(code_it_msgs::SetTorsoRequest& req,
                                 : height;  // Makes sure height is within bounds
   height = (height > maxHeight) ? maxHeight : height;
 
-  actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
-      client("torso_controller/follow_joint_trajectory", true);
-  bool serverConnected = client.waitForServer(ros::Duration(5));
-  if (serverConnected) {
-    trajectory_msgs::JointTrajectoryPoint point;
-    point.positions.push_back(height);
-    point.time_from_start = ros::Duration(TIME_FROM_START, 0);
-    control_msgs::FollowJointTrajectoryGoal goal;
-    trajectory_msgs::JointTrajectory trajectory;
-    trajectory.joint_names.push_back(JOINT_NAME);
-    trajectory.points.push_back(point);
-    goal.trajectory = trajectory;
-    client.sendGoal(goal);
-    bool success = client.waitForResult(ros::Duration(10));
-    if (!success) {
-      res.error = "Torso action did not finish within 10 seconds.";
-    }
-  } else {
-    res.error = "Unable to connect to torso server.";
+  trajectory_msgs::JointTrajectoryPoint point;
+  point.positions.push_back(height);
+  point.time_from_start = ros::Duration(TIME_FROM_START, 0);
+  control_msgs::FollowJointTrajectoryGoal goal;
+  trajectory_msgs::JointTrajectory trajectory;
+  trajectory.joint_names.push_back(JOINT_NAME);
+  trajectory.points.push_back(point);
+  goal.trajectory = trajectory;
+  torso_client_->sendGoal(goal);
+  bool success = torso_client_->waitForResult(ros::Duration(10));
+  if (!success) {
+    res.error = "Torso action did not finish within 10 seconds.";
   }
   return true;
 }
 
-void RobotApi::HandleProgramStopped(const std_msgs::Bool& msg) {
+void RobotApi::HandleProgramStopped(const std_msgs::Bool &msg) {
   if (msg.data) {
     return;  // Program is running, nothing to do.
   }

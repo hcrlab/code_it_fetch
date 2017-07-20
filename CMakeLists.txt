@@ -9,6 +9,7 @@ project(code_it_fetch)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   code_it_msgs
+  map_annotator
   rapid_display
   rapid_fetch
   roscpp
@@ -107,7 +108,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES code_it_fetch_api
-  CATKIN_DEPENDS rapid_fetch roscpp rospy
+  CATKIN_DEPENDS map_annotator rapid_fetch roscpp rospy
 #  DEPENDS system_lib
 )
 
