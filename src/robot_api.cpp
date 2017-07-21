@@ -12,6 +12,7 @@
 #include "control_msgs/FollowJointTrajectoryAction.h"
 #include "map_annotator/GoToLocationAction.h"
 #include "rapid_fetch/fetch.h"
+#include "rapid_pbd_msgs/ExecuteProgramAction.h"
 #include "ros/ros.h"
 #include "std_msgs/Bool.h"
 
@@ -19,13 +20,18 @@ using std::string;
 
 typedef actionlib::SimpleActionClient<map_annotator::GoToLocationAction>
     NavClient;
+typedef actionlib::SimpleActionClient<rapid_pbd_msgs::ExecuteProgramAction>
+    PbdClient;
 typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
     TorsoClient;
 
 namespace code_it_fetch {
 RobotApi::RobotApi(rapid::fetch::Fetch *robot, NavClient *nav_client,
-                   TorsoClient *torso_client)
-    : robot_(robot), nav_client_(nav_client), torso_client_(torso_client) {}
+                   PbdClient *pbd_client, TorsoClient *torso_client)
+    : robot_(robot),
+      nav_client_(nav_client),
+      pbd_client_(pbd_client),
+      torso_client_(torso_client) {}
 
 bool RobotApi::AskMultipleChoice(code_it_msgs::AskMultipleChoiceRequest &req,
                                  code_it_msgs::AskMultipleChoiceResponse &res) {
@@ -45,6 +51,26 @@ bool RobotApi::DisplayMessage(code_it_msgs::DisplayMessageRequest &req,
   if (!success) {
     res.error = errors::DISPLAY_MESSAGE;
   }
+  return true;
+}
+
+bool RobotApi::RunPbdProgram(code_it_msgs::RunPbdActionRequest &req,
+                             code_it_msgs::RunPbdActionResponse &res) {
+  rapid_pbd_msgs::ExecuteProgramGoal goal;
+  goal.name = req.name;
+  pbd_client_->sendGoal(goal);
+  bool success = pbd_client_->waitForResult(ros::Duration(10 * 60));
+  if (!success) {
+    res.error = "Rapid PbD action did not finish within 10 minutes.";
+    return true;
+  }
+  rapid_pbd_msgs::ExecuteProgramResultConstPtr result =
+      pbd_client_->getResult();
+  if (!result) {
+    res.error = "Error with Rapid PbD server.";
+    return true;
+  }
+  res.error = result->error;
   return true;
 }
 

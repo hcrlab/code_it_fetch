@@ -4,6 +4,7 @@
 #include "code_it_fetch/robot_api.h"
 #include "map_annotator/GoToLocationAction.h"
 #include "rapid_fetch/fetch.h"
+#include "rapid_pbd_msgs/ExecuteProgramAction.h"
 
 using code_it_fetch::RobotApi;
 
@@ -17,17 +18,23 @@ int main(int argc, char** argv) {
 
   actionlib::SimpleActionClient<map_annotator::GoToLocationAction> nav_client(
       "/map_annotator/go_to_location", true);
-  if (!nav_client.waitForServer(ros::Duration(10.0))) {
-    ROS_ERROR("Map annotator server not available.");
+  while (!nav_client.waitForServer(ros::Duration(5.0))) {
+    ROS_WARN("Waiting for map annotator server...");
+  }
+
+  actionlib::SimpleActionClient<rapid_pbd_msgs::ExecuteProgramAction>
+      pbd_client("/rapid_pbd/execute_program_action", true);
+  while (!nav_client.waitForServer(ros::Duration(5.0))) {
+    ROS_WARN("Waiting for Rapid PbD server...");
   }
 
   actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
       torso_client("torso_controller/follow_joint_trajectory", true);
-  if (!torso_client.waitForServer(ros::Duration(10.0))) {
-    ROS_ERROR("Torso server not available.");
+  while (!torso_client.waitForServer(ros::Duration(5.0))) {
+    ROS_WARN("Waiting for torso server...");
   }
 
-  RobotApi api(robot, &nav_client, &torso_client);
+  RobotApi api(robot, &nav_client, &pbd_client, &torso_client);
 
   ros::ServiceServer ask_mc_srv = nh.advertiseService(
       "code_it/api/ask_multiple_choice", &RobotApi::AskMultipleChoice, &api);
@@ -35,6 +42,8 @@ int main(int argc, char** argv) {
       "code_it/api/display_message", &RobotApi::DisplayMessage, &api);
   ros::ServiceServer go_to_srv =
       nh.advertiseService("code_it/api/go_to", &RobotApi::GoTo, &api);
+  ros::ServiceServer pbd_srv = nh.advertiseService(
+      "code_it/api/run_pbd_action", &RobotApi::RunPbdProgram, &api);
   ros::ServiceServer say_srv =
       nh.advertiseService("code_it/api/say", &RobotApi::Say, &api);
   ros::ServiceServer set_gripper_srv = nh.advertiseService(
