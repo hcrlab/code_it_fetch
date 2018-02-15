@@ -1,5 +1,6 @@
 #include "code_it_fetch/robot_api.h"
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -24,14 +25,18 @@ typedef actionlib::SimpleActionClient<rapid_pbd_msgs::ExecuteProgramAction>
     PbdClient;
 typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
     TorsoClient;
+typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
+    HeadClient;
 
 namespace code_it_fetch {
 RobotApi::RobotApi(rapid::fetch::Fetch *robot, NavClient *nav_client,
-                   PbdClient *pbd_client, TorsoClient *torso_client)
+                   PbdClient *pbd_client, TorsoClient *torso_client,
+                   HeadClient *head_client)
     : robot_(robot),
       nav_client_(nav_client),
       pbd_client_(pbd_client),
-      torso_client_(torso_client) {}
+      torso_client_(torso_client),
+      head_client_(head_client) {}
 
 bool RobotApi::AskMultipleChoice(code_it_msgs::AskMultipleChoiceRequest &req,
                                  code_it_msgs::AskMultipleChoiceResponse &res) {
@@ -52,6 +57,30 @@ bool RobotApi::DisplayMessage(code_it_msgs::DisplayMessageRequest &req,
     res.error = errors::DISPLAY_MESSAGE;
   }
   return true;
+}
+
+bool RobotApi::MoveHead(code_it_msgs::MoveHeadRequest &req,
+                        code_it_msgs::MoveHeadResponse &res) {
+  float pan = std::min(std::max(req.pan_degrees, -90.0), 90.0);
+  float tilt = std::min(std::max(req.tilt_degrees, -90.0), 45.0);
+
+  trajectory_msgs::JointTrajectoryPoint point;
+  point.positions.push_back(pan * M_PI / 180.0);
+  point.positions.push_back(tilt * M_PI / 180.0);
+  point.time_from_start = ros::Duration(2.5);
+  control_msgs::FollowJointTrajectoryGoal goal;
+
+  trajectory_msgs::JointTrajectory trajectory;
+  trajectory.joint_names.push_back("head_pan_joint");
+  trajectory.joint_names.push_back("head_tilt_joint");
+  trajectory.points.push_back(point);
+  goal.trajectory = trajectory;
+  head_client_->sendGoal(goal);
+
+  bool success = head_client_->waitForResult(ros::Duration(10));
+  if (!success) {
+    res.error = "Head action did not finish within 10 seconds.";
+  }
 }
 
 bool RobotApi::RunPbdProgram(code_it_msgs::RunPbdActionRequest &req,

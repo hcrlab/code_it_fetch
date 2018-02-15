@@ -78,6 +78,8 @@ flags = [
 '../rapid/rapid_utils/include',
 '-I',
 '../rapid/rapid_viz/include',
+'-I',
+'../rapid_fetch/include',
 ]
 
 # Set this to the absolute path to the folder (NOT the file!) containing the
