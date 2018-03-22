@@ -3,6 +3,8 @@
 
 #include <string>
 
+#include "actionlib/client/simple_action_client.h"
+#include "blinky/FaceAction.h"
 #include "code_it_msgs/AskMultipleChoice.h"
 #include "code_it_msgs/DisplayMessage.h"
 #include "code_it_msgs/GoTo.h"
@@ -20,8 +22,8 @@
 
 namespace code_it_fetch {
 namespace errors {
-static const char ASK_MC_QUESTION[] = "Failed to ask multiple choice question.";
-static const char DISPLAY_MESSAGE[] = "Failed to display message.";
+static const char BLINKY_NOT_AVAILABLE[] =
+    "Failed to connect to a Blinky face.";
 static const char GO_TO[] = "Failed to navigate to specified location.";
 static const char CLOSE_GRIPPER[] = "Failed to close gripper.";
 static const char OPEN_GRIPPER[] = "Failed to open gripper.";
@@ -32,6 +34,7 @@ class RobotApi {
   // Does not take ownership of the Fetch pointer.
   RobotApi(
       rapid::fetch::Fetch* robot,
+      actionlib::SimpleActionClient<blinky::FaceAction>* blinky_client,
       actionlib::SimpleActionClient<map_annotator::GoToLocationAction>*
           nav_client,
       actionlib::SimpleActionClient<rapid_pbd_msgs::ExecuteProgramAction>*
@@ -58,6 +61,7 @@ class RobotApi {
 
  private:
   rapid::fetch::Fetch* const robot_;
+  actionlib::SimpleActionClient<blinky::FaceAction>* blinky_client_;
   actionlib::SimpleActionClient<map_annotator::GoToLocationAction>* nav_client_;
   actionlib::SimpleActionClient<rapid_pbd_msgs::ExecuteProgramAction>*
       pbd_client_;

@@ -19,6 +19,7 @@
 
 using std::string;
 
+typedef actionlib::SimpleActionClient<blinky::FaceAction> BlinkyClient;
 typedef actionlib::SimpleActionClient<map_annotator::GoToLocationAction>
     NavClient;
 typedef actionlib::SimpleActionClient<rapid_pbd_msgs::ExecuteProgramAction>
@@ -29,10 +30,11 @@ typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
     HeadClient;
 
 namespace code_it_fetch {
-RobotApi::RobotApi(rapid::fetch::Fetch *robot, NavClient *nav_client,
-                   PbdClient *pbd_client, TorsoClient *torso_client,
-                   HeadClient *head_client)
+RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
+                   NavClient *nav_client, PbdClient *pbd_client,
+                   TorsoClient *torso_client, HeadClient *head_client)
     : robot_(robot),
+      blinky_client_(blinky_client),
       nav_client_(nav_client),
       pbd_client_(pbd_client),
       torso_client_(torso_client),
@@ -40,22 +42,33 @@ RobotApi::RobotApi(rapid::fetch::Fetch *robot, NavClient *nav_client,
 
 bool RobotApi::AskMultipleChoice(code_it_msgs::AskMultipleChoiceRequest &req,
                                  code_it_msgs::AskMultipleChoiceResponse &res) {
-  string choice;
-  bool success =
-      robot_->display->AskMultipleChoice(req.question, req.choices, &choice);
-  res.choice = choice;
-  if (!success) {
-    res.error = errors::ASK_MC_QUESTION;
+  blinky::FaceGoal goal;
+  goal.display_type = blinky::FaceGoal::ASK_CHOICE;
+  goal.question = req.question;
+  goal.choices = req.choices;
+  if (!blinky_client_->waitForServer(ros::Duration(5.0))) {
+    res.error = errors::BLINKY_NOT_AVAILABLE;
+    return true;
   }
+  blinky_client_->sendGoal(goal);
+  blinky_client_->waitForResult(ros::Duration(0));
+  blinky::FaceResultConstPtr result = blinky_client_->getResult();
+  res.choice = result->choice;
   return true;
 }
 
 bool RobotApi::DisplayMessage(code_it_msgs::DisplayMessageRequest &req,
                               code_it_msgs::DisplayMessageResponse &res) {
-  bool success = robot_->display->ShowMessage(req.h1_text, req.h2_text);
-  if (!success) {
-    res.error = errors::DISPLAY_MESSAGE;
+  blinky::FaceGoal goal;
+  goal.display_type = blinky::FaceGoal::DISPLAY_MESSAGE;
+  goal.h1_text = req.h1_text;
+  goal.h2_text = req.h2_text;
+  blinky_client_->sendGoal(goal);
+  if (!blinky_client_->waitForResult(ros::Duration(5.0))) {
+    res.error = errors::BLINKY_NOT_AVAILABLE;
+    return true;
   }
+
   return true;
 }
 
@@ -170,6 +183,8 @@ void RobotApi::HandleProgramStopped(const std_msgs::Bool &msg) {
   if (msg.data) {
     return;  // Program is running, nothing to do.
   }
-  robot_->display->ShowDefault();
+  blinky::FaceGoal goal;
+  goal.display_type = blinky::FaceGoal::DEFAULT;
+  blinky_client_->sendGoal(goal);
 }
 }  // namespace code_it_fetch

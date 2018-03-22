@@ -8,6 +8,8 @@ project(code_it_fetch)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  actionlib
+  blinky
   code_it_msgs
   map_annotator
   rapid_display
@@ -108,7 +110,13 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES code_it_fetch_api
-  CATKIN_DEPENDS map_annotator rapid_fetch roscpp rospy
+  CATKIN_DEPENDS
+    actionlib
+    blinky
+    map_annotator
+    rapid_fetch
+    roscpp
+    rospy
 #  DEPENDS system_lib
 )
 

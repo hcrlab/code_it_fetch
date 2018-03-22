@@ -1,6 +1,7 @@
 #include "ros/ros.h"
 
 #include "actionlib/client/simple_action_client.h"
+#include "blinky/FaceAction.h"
 #include "code_it_fetch/robot_api.h"
 #include "map_annotator/GoToLocationAction.h"
 #include "rapid_fetch/fetch.h"
@@ -16,17 +17,23 @@ int main(int argc, char** argv) {
 
   rapid::fetch::Fetch* robot = rapid::fetch::BuildReal();
 
+  actionlib::SimpleActionClient<blinky::FaceAction> blinky_client("blinky",
+                                                                  true);
+  if (!blinky_client.waitForServer(ros::Duration(5.0))) {
+    ROS_ERROR("Blinky server not available!");
+  }
+
   actionlib::SimpleActionClient<map_annotator::GoToLocationAction> nav_client(
       "/map_annotator/go_to_location", true);
-  // while (!nav_client.waitForServer(ros::Duration(5.0))) {
-  // ROS_WARN("Waiting for map annotator server...");
-  // }
+  if (!nav_client.waitForServer(ros::Duration(5.0))) {
+    ROS_ERROR("Map annotator server not available!");
+  }
 
   actionlib::SimpleActionClient<rapid_pbd_msgs::ExecuteProgramAction>
       pbd_client("/rapid_pbd/execute_program_action", true);
-  // while (!nav_client.waitForServer(ros::Duration(5.0))) {
-  // ROS_WARN("Waiting for Rapid PbD server...");
-  // }
+  if (!nav_client.waitForServer(ros::Duration(5.0))) {
+    ROS_WARN("Rapid PbD server not available!");
+  }
 
   actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
       torso_client("torso_controller/follow_joint_trajectory", true);
@@ -38,7 +45,8 @@ int main(int argc, char** argv) {
   while (!head_client.waitForServer(ros::Duration(5.0))) {
     ROS_WARN("Waiting for head server...");
   }
-  RobotApi api(robot, &nav_client, &pbd_client, &torso_client, &head_client);
+  RobotApi api(robot, &blinky_client, &nav_client, &pbd_client, &torso_client,
+               &head_client);
 
   ros::ServiceServer ask_mc_srv = nh.advertiseService(
       "code_it/api/ask_multiple_choice", &RobotApi::AskMultipleChoice, &api);
