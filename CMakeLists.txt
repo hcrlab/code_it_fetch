@@ -12,7 +12,6 @@ find_package(catkin REQUIRED COMPONENTS
   blinky
   code_it_msgs
   map_annotator
-  rapid_display
   rapid_fetch
   roscpp
   rospy

@@ -12,7 +12,6 @@
   <depend>blinky</depend>
   <depend>code_it_msgs</depend>
   <depend>map_annotator</depend>
-  <depend>rapid_display</depend>
   <depend>rapid_fetch</depend>
   <depend>roscpp</depend>
   <depend>rospy</depend>
