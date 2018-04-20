@@ -153,36 +153,6 @@ bool RobotApi::SetGripper(code_it_msgs::SetGripperRequest &req,
   }
   return true;
 }
-/*
-bool RobotApi::SetTorso(code_it_msgs::SetTorsoRequest &req,
-                        code_it_msgs::SetTorsoResponse &res) {
-  float height = req.height;
-  float maxHeight = 0.4;
-  float minHeight = 0.0;
-  int TIME_FROM_START = 5;  // Time in seconds
-  string JOINT_NAME = "torso_lift_joint";
-
-  height = (height < minHeight) ? minHeight
-                                : height;  // Makes sure height is within bounds
-  height = (height > maxHeight) ? maxHeight : height;
-
-  trajectory_msgs::JointTrajectoryPoint point;
-  point.positions.push_back(height);
-  point.time_from_start = ros::Duration(TIME_FROM_START, 0);
-  control_msgs::FollowJointTrajectoryGoal goal;
-  trajectory_msgs::JointTrajectory trajectory;
-  trajectory.joint_names.push_back(JOINT_NAME);
-  trajectory.points.push_back(point);
-  goal.trajectory = trajectory;
-  torso_client_->sendGoal(goal);
-  bool success = torso_client_->waitForResult(ros::Duration(10));
-  if (!success) {
-    res.error = "Torso action did not finish within 10 seconds.";
-  }
-  return true;
-}
-
- commenting */
 
 void RobotApi::SetTorso(const code_it_msgs::SetTorsoGoalConstPtr &goal) {
   float height = goal->height;
@@ -224,8 +194,6 @@ void RobotApi::SetTorso(const code_it_msgs::SetTorsoGoalConstPtr &goal) {
   result.error = torso_result->error_string;
   set_torso_server_.setSucceeded(result);
 }
-
-/* end of commenting */
 
 void RobotApi::HandleProgramStopped(const std_msgs::Bool &msg) {
   if (msg.data) {
