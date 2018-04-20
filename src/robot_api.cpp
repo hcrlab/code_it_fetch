@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "actionlib/client/simple_action_client.h"
+#include "actionlib/client/simple_client_goal_state.h"
 #include "code_it_msgs/AskMultipleChoice.h"
 #include "code_it_msgs/DisplayMessage.h"
 #include "code_it_msgs/GoTo.h"
@@ -38,7 +39,9 @@ RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
       nav_client_(nav_client),
       pbd_client_(pbd_client),
       torso_client_(torso_client),
-      head_client_(head_client) {}
+      head_client_(head_client),
+      set_torso_server_("/code_it/api/set_torso",
+                        boost::bind(&RobotApi::SetTorso, this, _1), false) {}
 
 bool RobotApi::AskMultipleChoice(code_it_msgs::AskMultipleChoiceRequest &req,
                                  code_it_msgs::AskMultipleChoiceResponse &res) {
@@ -150,7 +153,7 @@ bool RobotApi::SetGripper(code_it_msgs::SetGripperRequest &req,
   }
   return true;
 }
-
+/*
 bool RobotApi::SetTorso(code_it_msgs::SetTorsoRequest &req,
                         code_it_msgs::SetTorsoResponse &res) {
   float height = req.height;
@@ -178,6 +181,51 @@ bool RobotApi::SetTorso(code_it_msgs::SetTorsoRequest &req,
   }
   return true;
 }
+
+ commenting */
+
+void RobotApi::SetTorso(const code_it_msgs::SetTorsoGoalConstPtr &goal) {
+  float height = goal->height;
+  height = fmin(height, 0.4);
+  height = fmax(height, 0.0);
+  int TIME_FROM_START = 5;
+
+  trajectory_msgs::JointTrajectoryPoint point;
+  point.positions.push_back(height);
+  point.time_from_start = ros::Duration(TIME_FROM_START);
+  control_msgs::FollowJointTrajectoryGoal torso_goal;
+  torso_goal.trajectory.joint_names.push_back("torso_lift_joint");
+  torso_goal.trajectory.points.push_back(point);
+
+  torso_client_->sendGoal(torso_goal);
+  while (!torso_client_->getState().isDone()) {
+    if (set_torso_server_.isPreemptRequest() || !ros::ok()) {
+      torso_client_->cancelAllGoals();
+      set_torso_server_.setPreempted();
+      return;
+    }
+    ros::spinOnce();
+  }
+  if (torso_client_->getState() ==
+      actionlib::SimpleClientGoalState::PREEMPTED) {
+    torso_client_->cancelAllGoals();
+    set_torso_server_.setPreempted();
+    return;
+  } else if (torso_client_->getState() ==
+             actionlib::SimpleClientGoalState::ABORTED) {
+    torso_client_->cancelAllGoals();
+    set_torso_server_.setAborted();
+    return;
+  }
+
+  control_msgs::FollowJointTrajectoryResult::ConstPtr torso_result =
+      torso_client_->getResult();
+  code_it_msgs::SetTorsoResult result;
+  result.error = torso_result->error_string;
+  set_torso_server_.setSucceeded(result);
+}
+
+/* end of commenting */
 
 void RobotApi::HandleProgramStopped(const std_msgs::Bool &msg) {
   if (msg.data) {

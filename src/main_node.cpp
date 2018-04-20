@@ -60,8 +60,6 @@ int main(int argc, char** argv) {
       nh.advertiseService("code_it/api/say", &RobotApi::Say, &api);
   ros::ServiceServer set_gripper_srv = nh.advertiseService(
       "code_it/api/set_gripper", &RobotApi::SetGripper, &api);
-  ros::ServiceServer set_torso_srv =
-      nh.advertiseService("code_it/api/set_torso", &RobotApi::SetTorso, &api);
   ros::ServiceServer set_head_srv =
       nh.advertiseService("code_it/api/move_head", &RobotApi::MoveHead, &api);
   ros::Subscriber stop_sub = nh.subscribe(
