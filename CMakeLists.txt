@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   code_it_msgs
   map_annotator
   rapid_fetch
+  rapid_pbd_msgs
   roscpp
   rospy
 )
@@ -114,6 +115,7 @@ catkin_package(
     blinky
     map_annotator
     rapid_fetch
+    rapid_pbd_msgs
     roscpp
     rospy
 #  DEPENDS system_lib
