@@ -6,6 +6,7 @@
 
 #include "actionlib/client/simple_action_client.h"
 #include "actionlib/client/simple_client_goal_state.h"
+#include "blinky/FaceAction.h"
 #include "code_it_msgs/AskMultipleChoice.h"
 #include "code_it_msgs/DisplayMessage.h"
 #include "code_it_msgs/GoTo.h"
@@ -97,6 +98,7 @@ bool RobotApi::MoveHead(code_it_msgs::MoveHeadRequest &req,
   if (!success) {
     res.error = "Head action did not finish within 10 seconds.";
   }
+  return true;
 }
 
 bool RobotApi::RunPbdProgram(code_it_msgs::RunPbdActionRequest &req,
@@ -169,7 +171,7 @@ void RobotApi::SetTorso(const code_it_msgs::SetTorsoGoalConstPtr &goal) {
 
   torso_client_->sendGoal(torso_goal);
   while (!torso_client_->getState().isDone()) {
-    if (set_torso_server_.isPreemptRequest() || !ros::ok()) {
+    if (set_torso_server_.isPreemptRequested() || !ros::ok()) {
       torso_client_->cancelAllGoals();
       set_torso_server_.setPreempted();
       return;

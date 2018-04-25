@@ -5,6 +5,7 @@
 
 #include "actionlib/client/simple_action_client.h"
 #include "actionlib/server/simple_action_server.h"
+#include "blinky/FaceAction.h"
 #include "code_it_msgs/AskMultipleChoice.h"
 #include "code_it_msgs/DisplayMessage.h"
 #include "code_it_msgs/GoTo.h"
