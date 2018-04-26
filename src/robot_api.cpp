@@ -42,7 +42,9 @@ RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
       torso_client_(torso_client),
       head_client_(head_client),
       set_torso_server_("/code_it/api/set_torso",
-                        boost::bind(&RobotApi::SetTorso, this, _1), false) {}
+                        boost::bind(&RobotApi::SetTorso, this, _1), false) {
+  set_torso_server_.start();
+}
 
 bool RobotApi::AskMultipleChoice(code_it_msgs::AskMultipleChoiceRequest &req,
                                  code_it_msgs::AskMultipleChoiceResponse &res) {
