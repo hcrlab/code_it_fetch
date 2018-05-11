@@ -59,6 +59,7 @@ class RobotApi {
                   code_it_msgs::SetGripperResponse& res);
   void HandleProgramStopped(const std_msgs::Bool& msg);
   void SetTorso(const code_it_msgs::SetTorsoGoalConstPtr& goal);
+  bool TorsoIsDone() const;
 
  private:
   rapid::fetch::Fetch* const robot_;
