@@ -13,8 +13,10 @@
 #include "code_it_msgs/RunPbdAction.h"
 #include "code_it_msgs/Say.h"
 #include "code_it_msgs/SetGripper.h"
+#include "code_it_msgs/SetGripperAction.h"
 #include "code_it_msgs/SetTorsoAction.h"
 #include "control_msgs/FollowJointTrajectoryAction.h"
+#include "control_msgs/GripperCommandAction.h"
 #include "map_annotator/GoToLocationAction.h"
 #include "rapid_fetch/fetch.h"
 #include "rapid_pbd_msgs/ExecuteProgramAction.h"
@@ -42,6 +44,8 @@ class RobotApi {
           pbd_client,
       actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>*
           torso_client,
+      actionlib::SimpleActionClient<control_msgs::GripperCommandAction>*
+          gripper_client,
       actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>*
           head_client);
   bool AskMultipleChoice(code_it_msgs::AskMultipleChoiceRequest& req,
@@ -54,10 +58,9 @@ class RobotApi {
   bool RunPbdProgram(code_it_msgs::RunPbdActionRequest& req,
                      code_it_msgs::RunPbdActionResponse& res);
   bool Say(code_it_msgs::SayRequest& req, code_it_msgs::SayResponse& res);
-  bool SetGripper(code_it_msgs::SetGripperRequest& req,
-                  code_it_msgs::SetGripperResponse& res);
   void HandleProgramStopped(const std_msgs::Bool& msg);
   void SetTorso(const code_it_msgs::SetTorsoGoalConstPtr& goal);
+  void SetGripper(const code_it_msgs::SetGripperGoalConstPtr& goal);
 
  private:
   rapid::fetch::Fetch* const robot_;
@@ -67,9 +70,13 @@ class RobotApi {
       pbd_client_;
   actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>*
       torso_client_;
+  actionlib::SimpleActionClient<control_msgs::GripperCommandAction>*
+      gripper_client_;
   actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>*
       head_client_;
   actionlib::SimpleActionServer<code_it_msgs::SetTorsoAction> set_torso_server_;
+  actionlib::SimpleActionServer<code_it_msgs::SetGripperAction>
+      set_gripper_server_;
 };
 }  // namespace code_it_fetch
 #endif  // _CODE_IT_FETCH_ROBOT_API_H_

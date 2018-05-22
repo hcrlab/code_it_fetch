@@ -11,8 +11,8 @@
 #include "code_it_msgs/DisplayMessage.h"
 #include "code_it_msgs/GoTo.h"
 #include "code_it_msgs/Say.h"
-#include "code_it_msgs/SetGripper.h"
 #include "control_msgs/FollowJointTrajectoryAction.h"
+#include "control_msgs/GripperCommandAction.h"
 #include "map_annotator/GoToLocationAction.h"
 #include "rapid_fetch/fetch.h"
 #include "rapid_pbd_msgs/ExecuteProgramAction.h"
@@ -28,13 +28,16 @@ typedef actionlib::SimpleActionClient<rapid_pbd_msgs::ExecuteProgramAction>
     PbdClient;
 typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
     TorsoClient;
+typedef actionlib::SimpleActionClient<control_msgs::GripperCommandAction>
+    GripperClient;
 typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
     HeadClient;
 
 namespace code_it_fetch {
 RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
                    NavClient *nav_client, PbdClient *pbd_client,
-                   TorsoClient *torso_client, HeadClient *head_client)
+                   TorsoClient *torso_client, GripperClient *gripper_client,
+                   HeadClient *head_client)
     : robot_(robot),
       blinky_client_(blinky_client),
       nav_client_(nav_client),
@@ -42,7 +45,10 @@ RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
       torso_client_(torso_client),
       head_client_(head_client),
       set_torso_server_("/code_it/api/set_torso",
-                        boost::bind(&RobotApi::SetTorso, this, _1), false) {}
+                        boost::bind(&RobotApi::SetTorso, this, _1), false),
+      set_gripper_server_("/code_it/api/set_gripper",
+                          boost::bind(&RobotApi::SetGripper, this, _1), false) {
+}
 
 bool RobotApi::AskMultipleChoice(code_it_msgs::AskMultipleChoiceRequest &req,
                                  code_it_msgs::AskMultipleChoiceResponse &res) {
@@ -146,14 +152,49 @@ bool RobotApi::GoTo(code_it_msgs::GoToRequest &req,
   return true;
 }
 
-bool RobotApi::SetGripper(code_it_msgs::SetGripperRequest &req,
-                          code_it_msgs::SetGripperResponse &res) {
-  if (req.action == code_it_msgs::SetGripperRequest::OPEN) {
-    robot_->gripper->Open(req.max_effort);
-  } else if (req.action == code_it_msgs::SetGripperRequest::CLOSE) {
-    robot_->gripper->Close(req.max_effort);
+void RobotApi::SetGripper(const code_it_msgs::SetGripperGoalConstPtr &goal) {
+  float CLOSED_POS = 0.0;
+  float OPENED_POS = 0.10;
+  int MIN_EFFORT = 35;
+  int MAX_EFFORT = 100;
+
+  int action = goal->action;
+
+  control_msgs::GripperCommandGoal gripper_goal;
+  if (action == 1) {
+    gripper_goal.command.position = OPENED_POS;
+  } else if (action == 2) {
+    int max_effort = goal->max_effort;
+    max_effort = fmin(max_effort, MAX_EFFORT);
+    max_effort = fmax(max_effort, MIN_EFFORT);
+
+    gripper_goal.command.position = CLOSED_POS;
+    gripper_goal.command.max_effort = max_effort;
   }
-  return true;
+  gripper_client_->sendGoal(gripper_goal);
+  while (!gripper_client_->getState().isDone()) {
+    if (set_gripper_server_.isPreemptRequested() || !ros::ok()) {
+      gripper_client_->cancelAllGoals();
+      set_gripper_server_.setPreempted();
+      return;
+    }
+    ros::spinOnce();
+  }
+  if (gripper_client_->getState() ==
+      actionlib::SimpleClientGoalState::PREEMPTED) {
+    gripper_client_->cancelAllGoals();
+    set_gripper_server_.setPreempted();
+    return;
+  } else if (gripper_client_->getState() ==
+             actionlib::SimpleClientGoalState::ABORTED) {
+    gripper_client_->cancelAllGoals();
+    set_gripper_server_.setAborted();
+    return;
+  }
+  control_msgs::GripperCommandResult::ConstPtr gripper_result =
+      gripper_client_->getResult();
+  code_it_msgs::SetGripperResult result;
+  // result?
 }
 
 void RobotApi::SetTorso(const code_it_msgs::SetTorsoGoalConstPtr &goal) {
