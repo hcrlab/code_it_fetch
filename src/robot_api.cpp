@@ -254,10 +254,6 @@ void RobotApi::SetTorso(const code_it_msgs::SetTorsoGoalConstPtr &goal) {
   set_torso_server_.setSucceeded(result);
 }
 
-bool RobotApi::TorsoIsDone() const {
-  return torso_client_->getState().isDone();
-}
-
 void RobotApi::HandleProgramStopped(const std_msgs::Bool &msg) {
   if (msg.data) {
     return;  // Program is running, nothing to do.
