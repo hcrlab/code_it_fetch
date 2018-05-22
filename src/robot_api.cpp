@@ -10,6 +10,7 @@
 #include "code_it_msgs/AskMultipleChoice.h"
 #include "code_it_msgs/DisplayMessage.h"
 #include "code_it_msgs/GoTo.h"
+#include "code_it_msgs/RunPbdAction.h"
 #include "code_it_msgs/Say.h"
 #include "control_msgs/FollowJointTrajectoryAction.h"
 #include "control_msgs/GripperCommandAction.h"
@@ -44,10 +45,21 @@ RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
       pbd_client_(pbd_client),
       torso_client_(torso_client),
       head_client_(head_client),
+      go_to_server_("/code_it/api/go_to",
+                    boost::bind(&RobotApi::GoTo, this, _1), false),
+      move_head_server_("/code_it/api/move_head",
+                        boost::bind(&RobotApi::MoveHead, this, _1), false),
+      rapid_pbd_server_("/code_it/api/run_pbd_action",
+                        boost::bind(&RobotApi::RunPbdProgram, this, _1), false),
       set_torso_server_("/code_it/api/set_torso",
                         boost::bind(&RobotApi::SetTorso, this, _1), false),
       set_gripper_server_("/code_it/api/set_gripper",
                           boost::bind(&RobotApi::SetGripper, this, _1), false) {
+  go_to_server_.start();
+  move_head_server_.start();
+  rapid_pbd_server_.start();
+  set_torso_server_.start();
+  set_gripper_server_.start();
 }
 
 bool RobotApi::AskMultipleChoice(code_it_msgs::AskMultipleChoiceRequest &req,
@@ -82,50 +94,84 @@ bool RobotApi::DisplayMessage(code_it_msgs::DisplayMessageRequest &req,
   return true;
 }
 
-bool RobotApi::MoveHead(code_it_msgs::MoveHeadRequest &req,
-                        code_it_msgs::MoveHeadResponse &res) {
-  float pan = std::min(std::max(req.pan_degrees, -90.0), 90.0);
-  float tilt = std::min(std::max(req.tilt_degrees, -90.0), 45.0);
+void RobotApi::MoveHead(const code_it_msgs::MoveHeadGoalConstPtr &goal) {
+  float pan = goal->pan_degrees;
+  float tilt = goal->tilt_degrees;
+  pan = fmin(fmax(pan, -90.0), 90.0);
+  tilt = fmin(fmax(tilt, -90.0), 45.0);
+  int TIME_FROM_START = 5;
 
   trajectory_msgs::JointTrajectoryPoint point;
   point.positions.push_back(pan * M_PI / 180.0);
   point.positions.push_back(tilt * M_PI / 180.0);
-  point.time_from_start = ros::Duration(2.5);
-  control_msgs::FollowJointTrajectoryGoal goal;
+  point.time_from_start = ros::Duration(TIME_FROM_START);
+  control_msgs::FollowJointTrajectoryGoal head_goal;
+  head_goal.trajectory.joint_names.push_back("head_pan_joint");
+  head_goal.trajectory.joint_names.push_back("head_tilt_joint");
+  head_goal.trajectory.points.push_back(point);
 
-  trajectory_msgs::JointTrajectory trajectory;
-  trajectory.joint_names.push_back("head_pan_joint");
-  trajectory.joint_names.push_back("head_tilt_joint");
-  trajectory.points.push_back(point);
-  goal.trajectory = trajectory;
-  head_client_->sendGoal(goal);
-
-  bool success = head_client_->waitForResult(ros::Duration(10));
-  if (!success) {
-    res.error = "Head action did not finish within 10 seconds.";
+  head_client_->sendGoal(head_goal);
+  while (!head_client_->getState().isDone()) {
+    if (move_head_server_.isPreemptRequested() || !ros::ok()) {
+      head_client_->cancelAllGoals();
+      move_head_server_.setPreempted();
+      return;
+    }
+    ros::spinOnce();
   }
-  return true;
+  if (head_client_->getState() == actionlib::SimpleClientGoalState::PREEMPTED) {
+    head_client_->cancelAllGoals();
+    move_head_server_.setPreempted();
+    return;
+  } else if (head_client_->getState() ==
+             actionlib::SimpleClientGoalState::ABORTED) {
+    head_client_->cancelAllGoals();
+    move_head_server_.setAborted();
+    return;
+  }
+
+  control_msgs::FollowJointTrajectoryResult::ConstPtr head_result =
+      head_client_->getResult();
+  code_it_msgs::MoveHeadResult result;
+  result.error = head_result->error_string;
+  move_head_server_.setSucceeded(result);
 }
 
-bool RobotApi::RunPbdProgram(code_it_msgs::RunPbdActionRequest &req,
-                             code_it_msgs::RunPbdActionResponse &res) {
-  rapid_pbd_msgs::ExecuteProgramGoal goal;
-  goal.name = req.name;
-  pbd_client_->sendGoal(goal);
-  bool success = pbd_client_->waitForResult(ros::Duration(10 * 60));
-  if (!success) {
-    res.error = "Rapid PbD action did not finish within 10 minutes.";
-    return true;
+void RobotApi::RunPbdProgram(
+    const code_it_msgs::RunPbdActionGoalConstPtr &goal) {
+  rapid_pbd_msgs::ExecuteProgramGoal rapid_pbd_goal;
+  rapid_pbd_goal.name = goal->name;
+
+  pbd_client_->sendGoal(rapid_pbd_goal);
+  while (!pbd_client_->getState().isDone()) {
+    if (rapid_pbd_server_.isPreemptRequested() || !ros::ok()) {
+      pbd_client_->cancelAllGoals();
+      rapid_pbd_server_.setPreempted();
+      return;
+    }
+    ros::spinOnce();
   }
-  rapid_pbd_msgs::ExecuteProgramResultConstPtr result =
+  if (pbd_client_->getState() == actionlib::SimpleClientGoalState::PREEMPTED) {
+    pbd_client_->cancelAllGoals();
+    rapid_pbd_server_.setPreempted();
+    return;
+  } else if (pbd_client_->getState() ==
+             actionlib::SimpleClientGoalState::ABORTED) {
+    torso_client_->cancelAllGoals();
+    rapid_pbd_server_.setAborted();
+    return;
+  }
+
+  rapid_pbd_msgs::ExecuteProgramResult::ConstPtr rapid_pbd_result =
       pbd_client_->getResult();
-  if (!result) {
-    res.error = "Error with Rapid PbD server.";
-    return true;
-  }
-  res.error = result->error;
-  return true;
+  code_it_msgs::RunPbdActionResult result;
+  result.error = rapid_pbd_result->error;
+  rapid_pbd_server_.setSucceeded(result);
 }
+
+//  bool success = pbd_client_->waitForResult(ros::Duration(10 * 60));
+//    res.error = "Rapid PbD action did not finish within 10 minutes.";
+//    res.error = "Error with Rapid PbD server.";
 
 bool RobotApi::Say(code_it_msgs::SayRequest &req,
                    code_it_msgs::SayResponse &res) {
@@ -133,23 +179,34 @@ bool RobotApi::Say(code_it_msgs::SayRequest &req,
   return true;
 }
 
-bool RobotApi::GoTo(code_it_msgs::GoToRequest &req,
-                    code_it_msgs::GoToResponse &res) {
-  map_annotator::GoToLocationGoal goal;
-  goal.name = req.location;
-  nav_client_->sendGoal(goal);
-  bool success = nav_client_->waitForResult(ros::Duration(60 * 60));
-  if (!success) {
-    res.error = "Navigation did not finish within an hour.";
-    return true;
+void RobotApi::GoTo(const code_it_msgs::GoToGoalConstPtr &goal) {
+  map_annotator::GoToLocationGoal location_goal;
+  location_goal.name = goal->location;
+  nav_client_->sendGoal(location_goal);
+  while (!nav_client_->getState().isDone()) {
+    if (go_to_server_.isPreemptRequested() || !ros::ok()) {
+      nav_client_->cancelAllGoals();
+      go_to_server_.setPreempted();
+      return;
+    }
+    ros::spinOnce();
   }
-  map_annotator::GoToLocationResultConstPtr result = nav_client_->getResult();
-  if (!result) {
-    res.error = "Error with navigation server";
-    return true;
+  if (nav_client_->getState() == actionlib::SimpleClientGoalState::PREEMPTED) {
+    nav_client_->cancelAllGoals();
+    go_to_server_.setPreempted();
+    return;
+  } else if (nav_client_->getState() ==
+             actionlib::SimpleClientGoalState::ABORTED) {
+    nav_client_->cancelAllGoals();
+    go_to_server_.setAborted();
+    return;
   }
-  res.error = result->error;
-  return true;
+
+  map_annotator::GoToLocationResult::ConstPtr location_result =
+      nav_client_->getResult();
+  code_it_msgs::GoToResult result;
+  result.error = location_result->error;
+  go_to_server_.setSucceeded(result);
 }
 
 void RobotApi::SetGripper(const code_it_msgs::SetGripperGoalConstPtr &goal) {

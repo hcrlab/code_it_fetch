@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
 
   actionlib::SimpleActionClient<rapid_pbd_msgs::ExecuteProgramAction>
       pbd_client("/rapid_pbd/execute_program_action", true);
-  if (!nav_client.waitForServer(ros::Duration(5.0))) {
+  if (!pbd_client.waitForServer(ros::Duration(5.0))) {
     ROS_WARN("Rapid PbD server not available!");
   }
 
@@ -52,6 +52,7 @@ int main(int argc, char** argv) {
   while (!head_client.waitForServer(ros::Duration(5.0))) {
     ROS_WARN("Waiting for head server...");
   }
+
   RobotApi api(robot, &blinky_client, &nav_client, &pbd_client, &torso_client,
                &gripper_client, &head_client);
 
@@ -59,14 +60,8 @@ int main(int argc, char** argv) {
       "code_it/api/ask_multiple_choice", &RobotApi::AskMultipleChoice, &api);
   ros::ServiceServer disp_msg_srv = nh.advertiseService(
       "code_it/api/display_message", &RobotApi::DisplayMessage, &api);
-  ros::ServiceServer go_to_srv =
-      nh.advertiseService("code_it/api/go_to", &RobotApi::GoTo, &api);
-  ros::ServiceServer pbd_srv = nh.advertiseService(
-      "code_it/api/run_pbd_action", &RobotApi::RunPbdProgram, &api);
   ros::ServiceServer say_srv =
       nh.advertiseService("code_it/api/say", &RobotApi::Say, &api);
-  ros::ServiceServer set_head_srv =
-      nh.advertiseService("code_it/api/move_head", &RobotApi::MoveHead, &api);
   ros::Subscriber stop_sub = nh.subscribe(
       "code_it/is_program_running", 10, &RobotApi::HandleProgramStopped, &api);
   ROS_INFO("CodeIt! for the Fetch is ready.");

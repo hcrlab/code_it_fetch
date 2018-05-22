@@ -9,8 +9,11 @@
 #include "code_it_msgs/AskMultipleChoice.h"
 #include "code_it_msgs/DisplayMessage.h"
 #include "code_it_msgs/GoTo.h"
+#include "code_it_msgs/GoToAction.h"
 #include "code_it_msgs/MoveHead.h"
+#include "code_it_msgs/MoveHeadAction.h"
 #include "code_it_msgs/RunPbdAction.h"
+#include "code_it_msgs/RunPbdActionAction.h"
 #include "code_it_msgs/Say.h"
 #include "code_it_msgs/SetGripper.h"
 #include "code_it_msgs/SetGripperAction.h"
@@ -52,15 +55,14 @@ class RobotApi {
                          code_it_msgs::AskMultipleChoiceResponse& res);
   bool DisplayMessage(code_it_msgs::DisplayMessageRequest& req,
                       code_it_msgs::DisplayMessageResponse& res);
-  bool GoTo(code_it_msgs::GoToRequest& req, code_it_msgs::GoToResponse& res);
-  bool MoveHead(code_it_msgs::MoveHeadRequest& req,
-                code_it_msgs::MoveHeadResponse& res);
-  bool RunPbdProgram(code_it_msgs::RunPbdActionRequest& req,
-                     code_it_msgs::RunPbdActionResponse& res);
+  void GoTo(const code_it_msgs::GoToGoalConstPtr& goal);
+  void MoveHead(const code_it_msgs::MoveHeadGoalConstPtr& goal);
+  void RunPbdProgram(const code_it_msgs::RunPbdActionGoalConstPtr& goal);
   bool Say(code_it_msgs::SayRequest& req, code_it_msgs::SayResponse& res);
   void HandleProgramStopped(const std_msgs::Bool& msg);
   void SetTorso(const code_it_msgs::SetTorsoGoalConstPtr& goal);
   void SetGripper(const code_it_msgs::SetGripperGoalConstPtr& goal);
+  bool TorsoIsDone() const;
 
  private:
   rapid::fetch::Fetch* const robot_;
@@ -74,6 +76,10 @@ class RobotApi {
       gripper_client_;
   actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>*
       head_client_;
+  actionlib::SimpleActionServer<code_it_msgs::GoToAction> go_to_server_;
+  actionlib::SimpleActionServer<code_it_msgs::MoveHeadAction> move_head_server_;
+  actionlib::SimpleActionServer<code_it_msgs::RunPbdActionAction>
+      rapid_pbd_server_;
   actionlib::SimpleActionServer<code_it_msgs::SetTorsoAction> set_torso_server_;
   actionlib::SimpleActionServer<code_it_msgs::SetGripperAction>
       set_gripper_server_;
