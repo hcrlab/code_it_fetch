@@ -44,6 +44,7 @@ RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
       nav_client_(nav_client),
       pbd_client_(pbd_client),
       torso_client_(torso_client),
+      gripper_client_(gripper_client),
       head_client_(head_client),
       go_to_server_("/code_it/api/go_to",
                     boost::bind(&RobotApi::GoTo, this, _1), false),
@@ -248,10 +249,16 @@ void RobotApi::SetGripper(const code_it_msgs::SetGripperGoalConstPtr &goal) {
     set_gripper_server_.setAborted();
     return;
   }
+
   control_msgs::GripperCommandResult::ConstPtr gripper_result =
       gripper_client_->getResult();
   code_it_msgs::SetGripperResult result;
-  // result?
+  if (gripper_result->stalled) {
+    result.error = "Stalled";
+  } else if (!gripper_result->reached_goal) {
+    result.error = "Did not reach goal";
+  }
+  set_gripper_server_.setSucceeded(result);
 }
 
 void RobotApi::SetTorso(const code_it_msgs::SetTorsoGoalConstPtr &goal) {
