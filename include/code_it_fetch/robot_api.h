@@ -7,6 +7,7 @@
 #include "actionlib/server/simple_action_server.h"
 #include "blinky/FaceAction.h"
 #include "code_it_msgs/AskMultipleChoice.h"
+#include "code_it_msgs/AskMultipleChoiceAction.h"
 #include "code_it_msgs/DisplayMessage.h"
 #include "code_it_msgs/GoTo.h"
 #include "code_it_msgs/GoToAction.h"
@@ -51,8 +52,6 @@ class RobotApi {
           gripper_client,
       actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>*
           head_client);
-  bool AskMultipleChoice(code_it_msgs::AskMultipleChoiceRequest& req,
-                         code_it_msgs::AskMultipleChoiceResponse& res);
   bool DisplayMessage(code_it_msgs::DisplayMessageRequest& req,
                       code_it_msgs::DisplayMessageResponse& res);
   void GoTo(const code_it_msgs::GoToGoalConstPtr& goal);
@@ -62,7 +61,8 @@ class RobotApi {
   void HandleProgramStopped(const std_msgs::Bool& msg);
   void SetTorso(const code_it_msgs::SetTorsoGoalConstPtr& goal);
   void SetGripper(const code_it_msgs::SetGripperGoalConstPtr& goal);
-  bool TorsoIsDone() const;
+  void AskMultipleChoice(
+      const code_it_msgs::AskMultipleChoiceGoalConstPtr& goal);
 
  private:
   rapid::fetch::Fetch* const robot_;
@@ -83,6 +83,8 @@ class RobotApi {
   actionlib::SimpleActionServer<code_it_msgs::SetTorsoAction> set_torso_server_;
   actionlib::SimpleActionServer<code_it_msgs::SetGripperAction>
       set_gripper_server_;
+  actionlib::SimpleActionServer<code_it_msgs::AskMultipleChoiceAction>
+      ask_mc_server_;
 };
 }  // namespace code_it_fetch
 #endif  // _CODE_IT_FETCH_ROBOT_API_H_

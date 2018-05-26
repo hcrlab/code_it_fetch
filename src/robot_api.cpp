@@ -55,29 +55,16 @@ RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
       set_torso_server_("/code_it/api/set_torso",
                         boost::bind(&RobotApi::SetTorso, this, _1), false),
       set_gripper_server_("/code_it/api/set_gripper",
-                          boost::bind(&RobotApi::SetGripper, this, _1), false) {
+                          boost::bind(&RobotApi::SetGripper, this, _1), false),
+      ask_mc_server_("/code_it/api/ask_multiple_choice",
+                     boost::bind(&RobotApi::AskMultipleChoice, this, _1),
+                     false) {
   go_to_server_.start();
   move_head_server_.start();
   rapid_pbd_server_.start();
   set_torso_server_.start();
   set_gripper_server_.start();
-}
-
-bool RobotApi::AskMultipleChoice(code_it_msgs::AskMultipleChoiceRequest &req,
-                                 code_it_msgs::AskMultipleChoiceResponse &res) {
-  blinky::FaceGoal goal;
-  goal.display_type = blinky::FaceGoal::ASK_CHOICE;
-  goal.question = req.question;
-  goal.choices = req.choices;
-  if (!blinky_client_->waitForServer(ros::Duration(5.0))) {
-    res.error = errors::BLINKY_NOT_AVAILABLE;
-    return true;
-  }
-  blinky_client_->sendGoal(goal);
-  blinky_client_->waitForResult(ros::Duration(0));
-  blinky::FaceResultConstPtr result = blinky_client_->getResult();
-  res.choice = result->choice;
-  return true;
+  ask_mc_server_.start();
 }
 
 bool RobotApi::DisplayMessage(code_it_msgs::DisplayMessageRequest &req,
@@ -93,6 +80,41 @@ bool RobotApi::DisplayMessage(code_it_msgs::DisplayMessageRequest &req,
   }
 
   return true;
+}
+
+void RobotApi::AskMultipleChoice(
+    const code_it_msgs::AskMultipleChoiceGoalConstPtr &goal) {
+  blinky::FaceGoal face_goal;
+  face_goal.display_type = blinky::FaceGoal::ASK_CHOICE;
+
+  face_goal.question = goal->question;
+  face_goal.choices = goal->choices;
+
+  blinky_client_->sendGoal(face_goal);
+  while (!blinky_client_->getState().isDone()) {
+    if (ask_mc_server_.isPreemptRequested() || !ros::ok()) {
+      blinky_client_->cancelAllGoals();
+      ask_mc_server_.setPreempted();
+      return;
+    }
+    ros::spinOnce();
+  }
+  if (blinky_client_->getState() ==
+      actionlib::SimpleClientGoalState::PREEMPTED) {
+    blinky_client_->cancelAllGoals();
+    ask_mc_server_.setPreempted();
+    return;
+  } else if (blinky_client_->getState() ==
+             actionlib::SimpleClientGoalState::ABORTED) {
+    blinky_client_->cancelAllGoals();
+    ask_mc_server_.setAborted();
+    return;
+  }
+
+  blinky::FaceResult::ConstPtr face_result = blinky_client_->getResult();
+  code_it_msgs::AskMultipleChoiceResult result;
+  result.choice = face_result->choice;
+  ask_mc_server_.setSucceeded(result);
 }
 
 void RobotApi::MoveHead(const code_it_msgs::MoveHeadGoalConstPtr &goal) {
@@ -253,11 +275,6 @@ void RobotApi::SetGripper(const code_it_msgs::SetGripperGoalConstPtr &goal) {
   control_msgs::GripperCommandResult::ConstPtr gripper_result =
       gripper_client_->getResult();
   code_it_msgs::SetGripperResult result;
-  if (gripper_result->stalled) {
-    result.error = "Stalled";
-  } else if (!gripper_result->reached_goal) {
-    result.error = "Did not reach goal";
-  }
   set_gripper_server_.setSucceeded(result);
 }
 
