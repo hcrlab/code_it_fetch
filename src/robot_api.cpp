@@ -67,6 +67,23 @@ RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
   ask_mc_server_.start();
 }
 
+bool RobotApi::AskMultipleChoice(code_it_msgs::AskMultipleChoiceRequest &req,
+                                 code_it_msgs::AskMultipleChoiceResponse &res) {
+  blinky::FaceGoal goal;
+  goal.display_type = blinky::FaceGoal::ASK_CHOICE;
+  goal.question = req.question;
+  goal.choices = req.choices;
+  if (!blinky_client_->waitForServer(ros::Duration(5.0))) {
+    res.error = errors::BLINKY_NOT_AVAILABLE;
+    return true;
+  }
+  blinky_client_->sendGoal(goal);
+  blinky_client_->waitForResult(ros::Duration(0));
+  blinky::FaceResultConstPtr result = blinky_client_->getResult();
+  res.choice = result->choice;
+  return true;
+}
+
 bool RobotApi::DisplayMessage(code_it_msgs::DisplayMessageRequest &req,
                               code_it_msgs::DisplayMessageResponse &res) {
   blinky::FaceGoal goal;

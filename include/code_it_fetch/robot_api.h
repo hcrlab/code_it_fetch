@@ -52,6 +52,8 @@ class RobotApi {
           gripper_client,
       actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>*
           head_client);
+  bool AskMultipleChoice(code_it_msgs::AskMultipleChoiceRequest& req,
+                         code_it_msgs::AskMultipleChoiceResponse& res);
   bool DisplayMessage(code_it_msgs::DisplayMessageRequest& req,
                       code_it_msgs::DisplayMessageResponse& res);
   void GoTo(const code_it_msgs::GoToGoalConstPtr& goal);
