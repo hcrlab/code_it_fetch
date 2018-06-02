@@ -57,8 +57,7 @@ RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
       set_gripper_server_("/code_it/api/set_gripper",
                           boost::bind(&RobotApi::SetGripper, this, _1), false),
       ask_mc_server_("/code_it/api/ask_multiple_choice",
-                     boost::bind(&RobotApi::AskMultipleChoice, this, _1),
-                     false) {
+                     boost::bind(&RobotApi::AskMC, this, _1), false) {
   go_to_server_.start();
   move_head_server_.start();
   rapid_pbd_server_.start();
@@ -99,11 +98,9 @@ bool RobotApi::DisplayMessage(code_it_msgs::DisplayMessageRequest &req,
   return true;
 }
 
-void RobotApi::AskMultipleChoice(
-    const code_it_msgs::AskMultipleChoiceGoalConstPtr &goal) {
+void RobotApi::AskMC(const code_it_msgs::AskMultipleChoiceGoalConstPtr &goal) {
   blinky::FaceGoal face_goal;
   face_goal.display_type = blinky::FaceGoal::ASK_CHOICE;
-
   face_goal.question = goal->question;
   face_goal.choices = goal->choices;
 

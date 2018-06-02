@@ -54,6 +54,7 @@ class RobotApi {
           head_client);
   bool AskMultipleChoice(code_it_msgs::AskMultipleChoiceRequest& req,
                          code_it_msgs::AskMultipleChoiceResponse& res);
+  void AskMC(const code_it_msgs::AskMultipleChoiceGoalConstPtr& goal);
   bool DisplayMessage(code_it_msgs::DisplayMessageRequest& req,
                       code_it_msgs::DisplayMessageResponse& res);
   void GoTo(const code_it_msgs::GoToGoalConstPtr& goal);
@@ -63,8 +64,6 @@ class RobotApi {
   void HandleProgramStopped(const std_msgs::Bool& msg);
   void SetTorso(const code_it_msgs::SetTorsoGoalConstPtr& goal);
   void SetGripper(const code_it_msgs::SetGripperGoalConstPtr& goal);
-  void AskMultipleChoice(
-      const code_it_msgs::AskMultipleChoiceGoalConstPtr& goal);
 
  private:
   rapid::fetch::Fetch* const robot_;
