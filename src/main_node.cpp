@@ -56,8 +56,6 @@ int main(int argc, char** argv) {
   RobotApi api(robot, &blinky_client, &nav_client, &pbd_client, &torso_client,
                &gripper_client, &head_client);
 
-  ros::ServiceServer ask_mc_srv = nh.advertiseService(
-      "code_it/api/ask_multiple_choice", &RobotApi::AskMultipleChoice, &api);
   ros::ServiceServer disp_msg_srv = nh.advertiseService(
       "code_it/api/display_message", &RobotApi::DisplayMessage, &api);
   ros::ServiceServer say_srv =
