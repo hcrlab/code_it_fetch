@@ -6,17 +6,12 @@
 #include "actionlib/client/simple_action_client.h"
 #include "actionlib/server/simple_action_server.h"
 #include "blinky/FaceAction.h"
-#include "code_it_msgs/AskMultipleChoice.h"
 #include "code_it_msgs/AskMultipleChoiceAction.h"
 #include "code_it_msgs/DisplayMessage.h"
-#include "code_it_msgs/GoTo.h"
 #include "code_it_msgs/GoToAction.h"
-#include "code_it_msgs/MoveHead.h"
 #include "code_it_msgs/MoveHeadAction.h"
-#include "code_it_msgs/RunPbdAction.h"
 #include "code_it_msgs/RunPbdActionAction.h"
 #include "code_it_msgs/Say.h"
-#include "code_it_msgs/SetGripper.h"
 #include "code_it_msgs/SetGripperAction.h"
 #include "code_it_msgs/SetTorsoAction.h"
 #include "control_msgs/FollowJointTrajectoryAction.h"
@@ -52,8 +47,6 @@ class RobotApi {
           gripper_client,
       actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>*
           head_client);
-  bool AskMultipleChoice(code_it_msgs::AskMultipleChoiceRequest& req,
-                         code_it_msgs::AskMultipleChoiceResponse& res);
   void AskMC(const code_it_msgs::AskMultipleChoiceGoalConstPtr& goal);
   bool DisplayMessage(code_it_msgs::DisplayMessageRequest& req,
                       code_it_msgs::DisplayMessageResponse& res);
