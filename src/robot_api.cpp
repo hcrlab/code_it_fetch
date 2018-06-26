@@ -57,29 +57,51 @@ RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
       set_gripper_server_("/code_it/api/set_gripper",
                           boost::bind(&RobotApi::SetGripper, this, _1), false),
       ask_mc_server_("/code_it/api/ask_multiple_choice",
-                     boost::bind(&RobotApi::AskMC, this, _1), false) {
+                     boost::bind(&RobotApi::AskMC, this, _1), false),
+      display_message_server_("/code_it/api/display_message",
+		      boost::bind(&RobotApi::DisplayMessage, this, _1), false) {
   go_to_server_.start();
   move_head_server_.start();
   rapid_pbd_server_.start();
   set_torso_server_.start();
   set_gripper_server_.start();
   ask_mc_server_.start();
+  display_message_server_.start();
 }
 
-bool RobotApi::DisplayMessage(code_it_msgs::DisplayMessageRequest &req,
-                              code_it_msgs::DisplayMessageResponse &res) {
-  blinky::FaceGoal goal;
-  goal.display_type = blinky::FaceGoal::DISPLAY_MESSAGE;
-  goal.h1_text = req.h1_text;
-  goal.h2_text = req.h2_text;
-  blinky_client_->sendGoal(goal);
-  if (!blinky_client_->waitForResult(ros::Duration(5.0))) {
-    res.error = errors::BLINKY_NOT_AVAILABLE;
-    return true;
-  }
-
-  return true;
+void RobotApi::DisplayMessage(const code_it_msgs::DisplayMessageGoalConstPtr &goal) {
+  blinky::FaceGoal face_goal;
+  face_goal.display_type = blinky::FaceGoal::DISPLAY_MESSAGE;
+  face_goal.h1_text = goal->h1_text;
+  face_goal.h2_text = goal->h2_text;
+ 
+  blinky_client_->sendGoal(face_goal);
+  while (!blinky_client_->getState().isDone()) {
+      if (display_message_server_.isPreemptRequested() || !ros::ok()) {
+        blinky_client_->cancelAllGoals();
+        display_message_server_.setPreempted();
+        return;
+      }
+      ros::spinOnce();
+    }
+    if (blinky_client_->getState() ==
+        actionlib::SimpleClientGoalState::PREEMPTED) {
+      blinky_client_->cancelAllGoals();
+      display_message_server_.setPreempted();
+      return;
+    } else if (blinky_client_->getState() ==
+               actionlib::SimpleClientGoalState::ABORTED) {
+      blinky_client_->cancelAllGoals();
+      display_message_server_.setAborted();
+      return;
+    }
+  
+    blinky::FaceResult::ConstPtr face_result = blinky_client_->getResult();
+    code_it_msgs::DisplayMessageResult result;
+    display_message_server_.setSucceeded(result);
 }
+
+	
 
 void RobotApi::AskMC(const code_it_msgs::AskMultipleChoiceGoalConstPtr &goal) {
   blinky::FaceGoal face_goal;

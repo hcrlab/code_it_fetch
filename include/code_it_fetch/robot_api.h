@@ -7,7 +7,7 @@
 #include "actionlib/server/simple_action_server.h"
 #include "blinky/FaceAction.h"
 #include "code_it_msgs/AskMultipleChoiceAction.h"
-#include "code_it_msgs/DisplayMessage.h"
+#include "code_it_msgs/DisplayMessageAction.h"
 #include "code_it_msgs/GoToAction.h"
 #include "code_it_msgs/MoveHeadAction.h"
 #include "code_it_msgs/RunPbdActionAction.h"
@@ -48,8 +48,7 @@ class RobotApi {
       actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>*
           head_client);
   void AskMC(const code_it_msgs::AskMultipleChoiceGoalConstPtr& goal);
-  bool DisplayMessage(code_it_msgs::DisplayMessageRequest& req,
-                      code_it_msgs::DisplayMessageResponse& res);
+  void DisplayMessage(const code_it_msgs::DisplayMessageGoalConstPtr& goal);
   void GoTo(const code_it_msgs::GoToGoalConstPtr& goal);
   void MoveHead(const code_it_msgs::MoveHeadGoalConstPtr& goal);
   void RunPbdProgram(const code_it_msgs::RunPbdActionGoalConstPtr& goal);
@@ -79,6 +78,7 @@ class RobotApi {
       set_gripper_server_;
   actionlib::SimpleActionServer<code_it_msgs::AskMultipleChoiceAction>
       ask_mc_server_;
+  actionlib::SimpleActionServer<code_it_msgs::DisplayMessageAction> display_message_server_;
 };
 }  // namespace code_it_fetch
 #endif  // _CODE_IT_FETCH_ROBOT_API_H_
