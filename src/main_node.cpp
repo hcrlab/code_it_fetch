@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
 
   actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
       head_client("head_controller/follow_joint_trajectory", true);
-  while (!head_client.waitForServer(ros::Duration(5.0))) {
+  while (ros::ok() && !head_client.waitForServer(ros::Duration(5.0))) {
     ROS_WARN("Waiting for head server...");
   }
 
@@ -43,13 +43,13 @@ int main(int argc, char** argv) {
 
   actionlib::SimpleActionClient<control_msgs::GripperCommandAction>
       gripper_client("gripper_controller/gripper_action", true);
-  while (!gripper_client.waitForServer(ros::Duration(5.0))) {
+  while (ros::ok() && !gripper_client.waitForServer(ros::Duration(5.0))) {
     ROS_WARN("Waiting for gripper server...");
   }
 
   actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
       torso_client("torso_controller/follow_joint_trajectory", true);
-  while (!torso_client.waitForServer(ros::Duration(5.0))) {
+  while (ros::ok() && !torso_client.waitForServer(ros::Duration(5.0))) {
     ROS_WARN("Waiting for torso server...");
   }
 
