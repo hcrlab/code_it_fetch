@@ -29,16 +29,16 @@ int main(int argc, char** argv) {
     ROS_ERROR("Map annotator server not available!");
   }
 
+  actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
+      head_client("head_controller/follow_joint_trajectory", true);
+  while (!head_client.waitForServer(ros::Duration(5.0))) {
+    ROS_WARN("Waiting for head server...");
+  }
+
   actionlib::SimpleActionClient<rapid_pbd_msgs::ExecuteProgramAction>
       pbd_client("/rapid_pbd/execute_program_action", true);
   if (!pbd_client.waitForServer(ros::Duration(5.0))) {
     ROS_WARN("Rapid PbD server not available!");
-  }
-
-  actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
-      torso_client("torso_controller/follow_joint_trajectory", true);
-  while (!torso_client.waitForServer(ros::Duration(5.0))) {
-    ROS_WARN("Waiting for torso server...");
   }
 
   actionlib::SimpleActionClient<control_msgs::GripperCommandAction>
@@ -48,18 +48,14 @@ int main(int argc, char** argv) {
   }
 
   actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
-      head_client("head_controller/follow_joint_trajectory", true);
-  while (!head_client.waitForServer(ros::Duration(5.0))) {
-    ROS_WARN("Waiting for head server...");
+      torso_client("torso_controller/follow_joint_trajectory", true);
+  while (!torso_client.waitForServer(ros::Duration(5.0))) {
+    ROS_WARN("Waiting for torso server...");
   }
 
-  RobotApi api(robot, &blinky_client, &nav_client, &pbd_client, &torso_client,
-               &gripper_client, &head_client);
+  RobotApi api(robot, &blinky_client, &nav_client, &head_client, &pbd_client, 
+		&gripper_client, &torso_client);
 
-  ros::ServiceServer ask_mc_srv = nh.advertiseService(
-      "code_it/api/ask_multiple_choice", &RobotApi::AskMultipleChoice, &api);
-  ros::ServiceServer disp_msg_srv = nh.advertiseService(
-      "code_it/api/display_message", &RobotApi::DisplayMessage, &api);
   ros::ServiceServer say_srv =
       nh.advertiseService("code_it/api/say", &RobotApi::Say, &api);
   ros::Subscriber stop_sub = nh.subscribe(

@@ -25,77 +25,48 @@ using std::string;
 typedef actionlib::SimpleActionClient<blinky::FaceAction> BlinkyClient;
 typedef actionlib::SimpleActionClient<map_annotator::GoToLocationAction>
     NavClient;
+typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
+    HeadClient;
 typedef actionlib::SimpleActionClient<rapid_pbd_msgs::ExecuteProgramAction>
     PbdClient;
-typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
-    TorsoClient;
 typedef actionlib::SimpleActionClient<control_msgs::GripperCommandAction>
     GripperClient;
 typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
-    HeadClient;
+    TorsoClient;
 
 namespace code_it_fetch {
 RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
-                   NavClient *nav_client, PbdClient *pbd_client,
-                   TorsoClient *torso_client, GripperClient *gripper_client,
-                   HeadClient *head_client)
+                   NavClient *nav_client, HeadClient *head_client, 
+		   PbdClient *pbd_client, GripperClient *gripper_client,
+                   TorsoClient *torso_client)
     : robot_(robot),
       blinky_client_(blinky_client),
       nav_client_(nav_client),
-      pbd_client_(pbd_client),
-      torso_client_(torso_client),
-      gripper_client_(gripper_client),
       head_client_(head_client),
+      pbd_client_(pbd_client),
+      gripper_client_(gripper_client),
+      torso_client_(torso_client),
+      ask_mc_server_("/code_it/api/ask_multiple_choice",
+                     boost::bind(&RobotApi::AskMC, this, _1), false),
+      display_message_server_("/code_it/api/display_message",
+		      boost::bind(&RobotApi::DisplayMessage, this, _1), false), 
       go_to_server_("/code_it/api/go_to",
                     boost::bind(&RobotApi::GoTo, this, _1), false),
       move_head_server_("/code_it/api/move_head",
                         boost::bind(&RobotApi::MoveHead, this, _1), false),
       rapid_pbd_server_("/code_it/api/run_pbd_action",
                         boost::bind(&RobotApi::RunPbdProgram, this, _1), false),
-      set_torso_server_("/code_it/api/set_torso",
-                        boost::bind(&RobotApi::SetTorso, this, _1), false),
       set_gripper_server_("/code_it/api/set_gripper",
                           boost::bind(&RobotApi::SetGripper, this, _1), false),
-      ask_mc_server_("/code_it/api/ask_multiple_choice",
-                     boost::bind(&RobotApi::AskMC, this, _1), false) {
+      set_torso_server_("/code_it/api/set_torso",
+                        boost::bind(&RobotApi::SetTorso, this, _1), false) {
+  ask_mc_server_.start();
+  display_message_server_.start();
   go_to_server_.start();
   move_head_server_.start();
   rapid_pbd_server_.start();
-  set_torso_server_.start();
   set_gripper_server_.start();
-  ask_mc_server_.start();
-}
-
-bool RobotApi::AskMultipleChoice(code_it_msgs::AskMultipleChoiceRequest &req,
-                                 code_it_msgs::AskMultipleChoiceResponse &res) {
-  blinky::FaceGoal goal;
-  goal.display_type = blinky::FaceGoal::ASK_CHOICE;
-  goal.question = req.question;
-  goal.choices = req.choices;
-  if (!blinky_client_->waitForServer(ros::Duration(5.0))) {
-    res.error = errors::BLINKY_NOT_AVAILABLE;
-    return true;
-  }
-  blinky_client_->sendGoal(goal);
-  blinky_client_->waitForResult(ros::Duration(0));
-  blinky::FaceResultConstPtr result = blinky_client_->getResult();
-  res.choice = result->choice;
-  return true;
-}
-
-bool RobotApi::DisplayMessage(code_it_msgs::DisplayMessageRequest &req,
-                              code_it_msgs::DisplayMessageResponse &res) {
-  blinky::FaceGoal goal;
-  goal.display_type = blinky::FaceGoal::DISPLAY_MESSAGE;
-  goal.h1_text = req.h1_text;
-  goal.h2_text = req.h2_text;
-  blinky_client_->sendGoal(goal);
-  if (!blinky_client_->waitForResult(ros::Duration(5.0))) {
-    res.error = errors::BLINKY_NOT_AVAILABLE;
-    return true;
-  }
-
-  return true;
+  set_torso_server_.start();
 }
 
 void RobotApi::AskMC(const code_it_msgs::AskMultipleChoiceGoalConstPtr &goal) {
@@ -129,6 +100,68 @@ void RobotApi::AskMC(const code_it_msgs::AskMultipleChoiceGoalConstPtr &goal) {
   code_it_msgs::AskMultipleChoiceResult result;
   result.choice = face_result->choice;
   ask_mc_server_.setSucceeded(result);
+}
+
+void RobotApi::DisplayMessage(const code_it_msgs::DisplayMessageGoalConstPtr &goal) {
+  blinky::FaceGoal face_goal;
+  face_goal.display_type = blinky::FaceGoal::DISPLAY_MESSAGE;
+  face_goal.h1_text = goal->h1_text;
+  face_goal.h2_text = goal->h2_text;
+ 
+  blinky_client_->sendGoal(face_goal);
+  while (!blinky_client_->getState().isDone()) {
+      if (display_message_server_.isPreemptRequested() || !ros::ok()) {
+        blinky_client_->cancelAllGoals();
+        display_message_server_.setPreempted();
+        return;
+      }
+      ros::spinOnce();
+    }
+    if (blinky_client_->getState() ==
+        actionlib::SimpleClientGoalState::PREEMPTED) {
+      blinky_client_->cancelAllGoals();
+      display_message_server_.setPreempted();
+      return;
+    } else if (blinky_client_->getState() ==
+               actionlib::SimpleClientGoalState::ABORTED) {
+      blinky_client_->cancelAllGoals();
+      display_message_server_.setAborted();
+      return;
+    }
+  
+    blinky::FaceResult::ConstPtr face_result = blinky_client_->getResult();
+    code_it_msgs::DisplayMessageResult result;
+    display_message_server_.setSucceeded(result);
+}
+
+void RobotApi::GoTo(const code_it_msgs::GoToGoalConstPtr &goal) {
+  map_annotator::GoToLocationGoal location_goal;
+  location_goal.name = goal->location;
+  nav_client_->sendGoal(location_goal);
+  while (!nav_client_->getState().isDone()) {
+    if (go_to_server_.isPreemptRequested() || !ros::ok()) {
+      nav_client_->cancelAllGoals();
+      go_to_server_.setPreempted();
+      return;
+    }
+    ros::spinOnce();
+  }
+  if (nav_client_->getState() == actionlib::SimpleClientGoalState::PREEMPTED) {
+    nav_client_->cancelAllGoals();
+    go_to_server_.setPreempted();
+    return;
+  } else if (nav_client_->getState() ==
+             actionlib::SimpleClientGoalState::ABORTED) {
+    nav_client_->cancelAllGoals();
+    go_to_server_.setAborted();
+    return;
+  }
+
+  map_annotator::GoToLocationResult::ConstPtr location_result =
+      nav_client_->getResult();
+  code_it_msgs::GoToResult result;
+  result.error = location_result->error;
+  go_to_server_.setSucceeded(result);
 }
 
 void RobotApi::MoveHead(const code_it_msgs::MoveHeadGoalConstPtr &goal) {
@@ -206,44 +239,10 @@ void RobotApi::RunPbdProgram(
   rapid_pbd_server_.setSucceeded(result);
 }
 
-//  bool success = pbd_client_->waitForResult(ros::Duration(10 * 60));
-//    res.error = "Rapid PbD action did not finish within 10 minutes.";
-//    res.error = "Error with Rapid PbD server.";
-
 bool RobotApi::Say(code_it_msgs::SayRequest &req,
                    code_it_msgs::SayResponse &res) {
   robot_->Say(req.text);
   return true;
-}
-
-void RobotApi::GoTo(const code_it_msgs::GoToGoalConstPtr &goal) {
-  map_annotator::GoToLocationGoal location_goal;
-  location_goal.name = goal->location;
-  nav_client_->sendGoal(location_goal);
-  while (!nav_client_->getState().isDone()) {
-    if (go_to_server_.isPreemptRequested() || !ros::ok()) {
-      nav_client_->cancelAllGoals();
-      go_to_server_.setPreempted();
-      return;
-    }
-    ros::spinOnce();
-  }
-  if (nav_client_->getState() == actionlib::SimpleClientGoalState::PREEMPTED) {
-    nav_client_->cancelAllGoals();
-    go_to_server_.setPreempted();
-    return;
-  } else if (nav_client_->getState() ==
-             actionlib::SimpleClientGoalState::ABORTED) {
-    nav_client_->cancelAllGoals();
-    go_to_server_.setAborted();
-    return;
-  }
-
-  map_annotator::GoToLocationResult::ConstPtr location_result =
-      nav_client_->getResult();
-  code_it_msgs::GoToResult result;
-  result.error = location_result->error;
-  go_to_server_.setSucceeded(result);
 }
 
 void RobotApi::SetGripper(const code_it_msgs::SetGripperGoalConstPtr &goal) {
