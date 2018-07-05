@@ -22,6 +22,8 @@
 #include "ros/ros.h"
 #include "std_msgs/Bool.h"
 
+using std::string;
+
 namespace code_it_fetch {
 namespace errors {
 static const char BLINKY_NOT_AVAILABLE[] =
@@ -30,6 +32,9 @@ static const char GO_TO[] = "Failed to navigate to specified location.";
 static const char CLOSE_GRIPPER[] = "Failed to close gripper.";
 static const char OPEN_GRIPPER[] = "Failed to open gripper.";
 }  // namespace errors
+
+string joint_states_names[30] = {};
+float joint_states_pos[30] = {};
 
 class RobotApi {
  public:
@@ -56,6 +61,7 @@ class RobotApi {
   void SetGripper(const code_it_msgs::SetGripperGoalConstPtr& goal);
   void SetTorso(const code_it_msgs::SetTorsoGoalConstPtr& goal);
   void HandleProgramStopped(const std_msgs::Bool& msg);
+  float GetCurrentPos(const string joint_name);
 
  private:
   rapid::fetch::Fetch* const robot_;
@@ -71,7 +77,8 @@ class RobotApi {
       torso_client_;
   actionlib::SimpleActionServer<code_it_msgs::AskMultipleChoiceAction>
       ask_mc_server_;
-  actionlib::SimpleActionServer<code_it_msgs::DisplayMessageAction> display_message_server_;
+  actionlib::SimpleActionServer<code_it_msgs::DisplayMessageAction>
+      display_message_server_;
   actionlib::SimpleActionServer<code_it_msgs::GoToAction> go_to_server_;
   actionlib::SimpleActionServer<code_it_msgs::MoveHeadAction> move_head_server_;
   actionlib::SimpleActionServer<code_it_msgs::RunPbdActionAction>

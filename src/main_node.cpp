@@ -9,10 +9,21 @@
 
 using code_it_fetch::RobotApi;
 
+void jointCallback(const sensor_msgs::JointState::ConstPtr& msg) {
+  for (unsigned int i = 0; i < msg->name.size(); i++) {
+    if (i >= msg->position.size()) {
+      continue;
+    }
+    code_it_fetch::joint_states_names[i] = msg->name[i];
+    code_it_fetch::joint_states_pos[i] = msg->position[i];
+  }
+}
+
 int main(int argc, char** argv) {
   ros::init(argc, argv, "code_it_fetch");
   ros::NodeHandle nh;
   ros::AsyncSpinner spinner(4);
+  ros::Subscriber joint_sub = nh.subscribe("/joint_states", 10, jointCallback);
   spinner.start();
 
   rapid::fetch::Fetch* robot = rapid::fetch::BuildReal();
@@ -53,8 +64,8 @@ int main(int argc, char** argv) {
     ROS_WARN("Waiting for torso server...");
   }
 
-  RobotApi api(robot, &blinky_client, &nav_client, &head_client, &pbd_client, 
-		&gripper_client, &torso_client);
+  RobotApi api(robot, &blinky_client, &nav_client, &head_client, &pbd_client,
+               &gripper_client, &torso_client);
 
   ros::ServiceServer say_srv =
       nh.advertiseService("code_it/api/say", &RobotApi::Say, &api);

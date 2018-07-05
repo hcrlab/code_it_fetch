@@ -1,6 +1,7 @@
 #include "code_it_fetch/robot_api.h"
 
 #include <algorithm>
+#include <cmath>
 #include <string>
 #include <vector>
 
@@ -20,6 +21,7 @@
 #include "ros/ros.h"
 #include "std_msgs/Bool.h"
 
+using std::abs;
 using std::string;
 
 typedef actionlib::SimpleActionClient<blinky::FaceAction> BlinkyClient;
@@ -36,8 +38,8 @@ typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
 
 namespace code_it_fetch {
 RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
-                   NavClient *nav_client, HeadClient *head_client, 
-		   PbdClient *pbd_client, GripperClient *gripper_client,
+                   NavClient *nav_client, HeadClient *head_client,
+                   PbdClient *pbd_client, GripperClient *gripper_client,
                    TorsoClient *torso_client)
     : robot_(robot),
       blinky_client_(blinky_client),
@@ -49,7 +51,8 @@ RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
       ask_mc_server_("/code_it/api/ask_multiple_choice",
                      boost::bind(&RobotApi::AskMC, this, _1), false),
       display_message_server_("/code_it/api/display_message",
-		      boost::bind(&RobotApi::DisplayMessage, this, _1), false), 
+                              boost::bind(&RobotApi::DisplayMessage, this, _1),
+                              false),
       go_to_server_("/code_it/api/go_to",
                     boost::bind(&RobotApi::GoTo, this, _1), false),
       move_head_server_("/code_it/api/move_head",
@@ -102,36 +105,37 @@ void RobotApi::AskMC(const code_it_msgs::AskMultipleChoiceGoalConstPtr &goal) {
   ask_mc_server_.setSucceeded(result);
 }
 
-void RobotApi::DisplayMessage(const code_it_msgs::DisplayMessageGoalConstPtr &goal) {
+void RobotApi::DisplayMessage(
+    const code_it_msgs::DisplayMessageGoalConstPtr &goal) {
   blinky::FaceGoal face_goal;
   face_goal.display_type = blinky::FaceGoal::DISPLAY_MESSAGE;
   face_goal.h1_text = goal->h1_text;
   face_goal.h2_text = goal->h2_text;
- 
+
   blinky_client_->sendGoal(face_goal);
   while (!blinky_client_->getState().isDone()) {
-      if (display_message_server_.isPreemptRequested() || !ros::ok()) {
-        blinky_client_->cancelAllGoals();
-        display_message_server_.setPreempted();
-        return;
-      }
-      ros::spinOnce();
-    }
-    if (blinky_client_->getState() ==
-        actionlib::SimpleClientGoalState::PREEMPTED) {
+    if (display_message_server_.isPreemptRequested() || !ros::ok()) {
       blinky_client_->cancelAllGoals();
       display_message_server_.setPreempted();
       return;
-    } else if (blinky_client_->getState() ==
-               actionlib::SimpleClientGoalState::ABORTED) {
-      blinky_client_->cancelAllGoals();
-      display_message_server_.setAborted();
-      return;
     }
-  
-    blinky::FaceResult::ConstPtr face_result = blinky_client_->getResult();
-    code_it_msgs::DisplayMessageResult result;
-    display_message_server_.setSucceeded(result);
+    ros::spinOnce();
+  }
+  if (blinky_client_->getState() ==
+      actionlib::SimpleClientGoalState::PREEMPTED) {
+    blinky_client_->cancelAllGoals();
+    display_message_server_.setPreempted();
+    return;
+  } else if (blinky_client_->getState() ==
+             actionlib::SimpleClientGoalState::ABORTED) {
+    blinky_client_->cancelAllGoals();
+    display_message_server_.setAborted();
+    return;
+  }
+
+  blinky::FaceResult::ConstPtr face_result = blinky_client_->getResult();
+  code_it_msgs::DisplayMessageResult result;
+  display_message_server_.setSucceeded(result);
 }
 
 void RobotApi::GoTo(const code_it_msgs::GoToGoalConstPtr &goal) {
@@ -168,8 +172,11 @@ void RobotApi::MoveHead(const code_it_msgs::MoveHeadGoalConstPtr &goal) {
   float pan = goal->pan_degrees;
   float tilt = goal->tilt_degrees;
   pan = fmin(fmax(pan, -90.0), 90.0);
+  float diffPan = abs(pan - GetCurrentPos("head_pan_joint"));
   tilt = fmin(fmax(tilt, -90.0), 45.0);
-  int TIME_FROM_START = 5;
+  float diffTilt = abs(tilt - GetCurrentPos("head_tilt_joint"));
+  float distance = sqrt((diffPan * diffPan) + (diffTilt * diffTilt));
+  int TIME_FROM_START = (2.5 / 225) * distance;
 
   trajectory_msgs::JointTrajectoryPoint point;
   point.positions.push_back(pan * M_PI / 180.0);
@@ -295,7 +302,8 @@ void RobotApi::SetTorso(const code_it_msgs::SetTorsoGoalConstPtr &goal) {
   float height = goal->height;
   height = fmin(height, 0.4);
   height = fmax(height, 0.0);
-  int TIME_FROM_START = 5;
+  float diffHeight = abs(height - GetCurrentPos("torso_lift_joint"));
+  int TIME_FROM_START = (5 / 0.4) * diffHeight;
 
   trajectory_msgs::JointTrajectoryPoint point;
   point.positions.push_back(height);
@@ -340,4 +348,15 @@ void RobotApi::HandleProgramStopped(const std_msgs::Bool &msg) {
   goal.display_type = blinky::FaceGoal::DEFAULT;
   blinky_client_->sendGoal(goal);
 }
+
+float RobotApi::GetCurrentPos(const string joint_name) {
+  float pos = 0;
+  for (unsigned int i = 0; i < 30; i++) {  // initialized to 30 in .h file
+    if (joint_name.compare(joint_states_names[i]) == 0) {
+      pos = joint_states_pos[i];
+    }
+  }
+  return pos;
+}
+
 }  // namespace code_it_fetch
