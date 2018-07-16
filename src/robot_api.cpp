@@ -176,7 +176,7 @@ void RobotApi::MoveHead(const code_it_msgs::MoveHeadGoalConstPtr &goal) {
   tilt = fmin(fmax(tilt, -90.0), 45.0);
   float diffTilt = abs(tilt - GetCurrentPos("head_tilt_joint"));
   float distance = sqrt((diffPan * diffPan) + (diffTilt * diffTilt));
-  int TIME_FROM_START = (2.5 / 225) * distance;
+  float TIME_FROM_START = (5.0 / 225) * distance;
 
   trajectory_msgs::JointTrajectoryPoint point;
   point.positions.push_back(pan * M_PI / 180.0);
