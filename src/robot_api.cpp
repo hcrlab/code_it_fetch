@@ -145,7 +145,6 @@ void RobotApi::GoTo(const code_it_msgs::GoToGoalConstPtr &goal) {
   while (!nav_client_->getState().isDone()) {
     if (go_to_server_.isPreemptRequested() || !ros::ok()) {
       nav_client_->cancelAllGoals();
-      go_to_server_.setPreempted();
     }
     ros::spinOnce();
   }
@@ -153,7 +152,8 @@ void RobotApi::GoTo(const code_it_msgs::GoToGoalConstPtr &goal) {
       nav_client_->getResult();
   code_it_msgs::GoToResult result;
   result.error = location_result->error;
-  if (nav_client_->getState() == actionlib::SimpleClientGoalState::PREEMPTED) {
+  if (nav_client_->getState() == actionlib::SimpleClientGoalState::PREEMPTED
+      || go_to_server_.isPreemptRequested()) {
     nav_client_->cancelAllGoals();
     go_to_server_.setPreempted(result);
     return;
@@ -232,10 +232,12 @@ void RobotApi::RunPbdProgram(
       || rapid_pbd_server_.isPreemptRequested()) {
     pbd_client_->cancelAllGoals();
     rapid_pbd_server_.setPreempted(result);
+    return;
   } else if (pbd_client_->getState() ==
              actionlib::SimpleClientGoalState::ABORTED) {
     pbd_client_->cancelAllGoals();
     rapid_pbd_server_.setAborted(result);
+    return;
   }
   rapid_pbd_server_.setSucceeded(result);
 }
