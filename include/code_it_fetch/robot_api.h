@@ -8,6 +8,7 @@
 #include "blinky/FaceAction.h"
 #include "code_it_msgs/AskMultipleChoiceAction.h"
 #include "code_it_msgs/DisplayMessageAction.h"
+#include "code_it_msgs/GetPositionAction.h"
 #include "code_it_msgs/GoToAction.h"
 #include "code_it_msgs/MoveHeadAction.h"
 #include "code_it_msgs/RunPbdActionAction.h"
@@ -61,6 +62,7 @@ class RobotApi {
   void SetGripper(const code_it_msgs::SetGripperGoalConstPtr& goal);
   void SetTorso(const code_it_msgs::SetTorsoGoalConstPtr& goal);
   void HandleProgramStopped(const std_msgs::Bool& msg);
+  void GetPosition(const code_it_msgs::GetPositionGoalConstPtr& goal);
   float GetCurrentPos(const string joint_name);
 
  private:
@@ -79,6 +81,8 @@ class RobotApi {
       ask_mc_server_;
   actionlib::SimpleActionServer<code_it_msgs::DisplayMessageAction>
       display_message_server_;
+  actionlib::SimpleActionServer<code_it_msgs::GetPositionAction>
+      get_pos_server_;
   actionlib::SimpleActionServer<code_it_msgs::GoToAction> go_to_server_;
   actionlib::SimpleActionServer<code_it_msgs::MoveHeadAction> move_head_server_;
   actionlib::SimpleActionServer<code_it_msgs::RunPbdActionAction>
