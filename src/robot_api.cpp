@@ -145,15 +145,17 @@ void RobotApi::GetPosition(const code_it_msgs::GetPositionGoalConstPtr &goal) {
   string resource = goal->name;
   code_it_msgs::GetPositionResult result;
   if (resource.compare("TORSO") == 0) {
-    result.position = GetCurrentPos("torso_lift_joint");
+    result.position = floor(GetCurrentPos("torso_lift_joint") * 1000) / 1000;
   } else if (resource.compare("HEADPAN") == 0) {
-    result.position = GetCurrentPos("head_pan_joint");
+    float pan = GetCurrentPos("head_pan_joint");	  
+    result.position = floor(((pan * 180.0) / M_PI) * 1000) / 1000; 
   } else if (resource.compare("HEADTILT") == 0) {
-    result.position = GetCurrentPos("head_tilt_joint");
+    float tilt = floor(GetCurrentPos("head_tilt_joint") * 1000) / 1000;	  
+    result.position = floor(((tilt * 180.0) / M_PI) * 1000) / 1000; 
   } else if (resource.compare("GRIPPER") == 0) {
     float gap = GetCurrentPos("l_gripper_finger_joint") +
                 GetCurrentPos("r_gripper_finger_joint");
-    result.position = gap;
+    result.position = floor(gap * 1000) / 1000;
   }
   get_pos_server_.setSucceeded(result);
 }
