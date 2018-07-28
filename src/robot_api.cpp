@@ -53,6 +53,8 @@ RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
       display_message_server_("/code_it/api/display_message",
                               boost::bind(&RobotApi::DisplayMessage, this, _1),
                               false),
+      get_pos_server_("/code_it/api/get_position",
+                      boost::bind(&RobotApi::GetPosition, this, _1), false),
       go_to_server_("/code_it/api/go_to",
                     boost::bind(&RobotApi::GoTo, this, _1), false),
       move_head_server_("/code_it/api/move_head",
@@ -65,6 +67,7 @@ RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
                         boost::bind(&RobotApi::SetTorso, this, _1), false) {
   ask_mc_server_.start();
   display_message_server_.start();
+  get_pos_server_.start();
   go_to_server_.start();
   move_head_server_.start();
   rapid_pbd_server_.start();
@@ -138,6 +141,23 @@ void RobotApi::DisplayMessage(
   display_message_server_.setSucceeded(result);
 }
 
+void RobotApi::GetPosition(const code_it_msgs::GetPositionGoalConstPtr &goal) {
+  string resource = goal->name;
+  code_it_msgs::GetPositionResult result;
+  if (resource.compare("TORSO") == 0) {
+    result.position = GetCurrentPos("torso_lift_joint");
+  } else if (resource.compare("HEADPAN") == 0) {
+    result.position = GetCurrentPos("head_pan_joint");
+  } else if (resource.compare("HEADTILT") == 0) {
+    result.position = GetCurrentPos("head_tilt_joint");
+  } else if (resource.compare("GRIPPER") == 0) {
+    float gap = GetCurrentPos("l_gripper_finger_joint") +
+                GetCurrentPos("r_gripper_finger_joint");
+    result.position = gap;
+  }
+  get_pos_server_.setSucceeded(result);
+}
+
 void RobotApi::GoTo(const code_it_msgs::GoToGoalConstPtr &goal) {
   map_annotator::GoToLocationGoal location_goal;
   location_goal.name = goal->location;
@@ -145,7 +165,6 @@ void RobotApi::GoTo(const code_it_msgs::GoToGoalConstPtr &goal) {
   while (!nav_client_->getState().isDone()) {
     if (go_to_server_.isPreemptRequested() || !ros::ok()) {
       nav_client_->cancelAllGoals();
-      go_to_server_.setPreempted();
     }
     ros::spinOnce();
   }
@@ -153,7 +172,8 @@ void RobotApi::GoTo(const code_it_msgs::GoToGoalConstPtr &goal) {
       nav_client_->getResult();
   code_it_msgs::GoToResult result;
   result.error = location_result->error;
-  if (nav_client_->getState() == actionlib::SimpleClientGoalState::PREEMPTED) {
+  if (nav_client_->getState() == actionlib::SimpleClientGoalState::PREEMPTED ||
+      go_to_server_.isPreemptRequested()) {
     nav_client_->cancelAllGoals();
     go_to_server_.setPreempted(result);
     return;
@@ -221,7 +241,6 @@ void RobotApi::RunPbdProgram(
   while (!pbd_client_->getState().isDone()) {
     if (rapid_pbd_server_.isPreemptRequested() || !ros::ok()) {
       pbd_client_->cancelAllGoals();
-      rapid_pbd_server_.setPreempted();
     }
     ros::spinOnce();
   }
@@ -229,13 +248,14 @@ void RobotApi::RunPbdProgram(
       pbd_client_->getResult();
   code_it_msgs::RunPbdActionResult result;
   result.error = rapid_pbd_result->error;
-  if (pbd_client_->getState() == actionlib::SimpleClientGoalState::PREEMPTED) {
+  if (pbd_client_->getState() == actionlib::SimpleClientGoalState::PREEMPTED ||
+      rapid_pbd_server_.isPreemptRequested()) {
     pbd_client_->cancelAllGoals();
     rapid_pbd_server_.setPreempted(result);
     return;
   } else if (pbd_client_->getState() ==
              actionlib::SimpleClientGoalState::ABORTED) {
-    torso_client_->cancelAllGoals();
+    pbd_client_->cancelAllGoals();
     rapid_pbd_server_.setAborted(result);
     return;
   }
