@@ -150,7 +150,7 @@ void RobotApi::GetPosition(const code_it_msgs::GetPositionGoalConstPtr &goal) {
     float pan = GetCurrentPos("head_pan_joint");	  
     result.position = floor(((pan * 180.0) / M_PI) * 1000) / 1000; 
   } else if (resource.compare("HEADTILT") == 0) {
-    float tilt = floor(GetCurrentPos("head_tilt_joint") * 1000) / 1000;	  
+    float tilt = GetCurrentPos("head_tilt_joint");	  
     result.position = floor(((tilt * 180.0) / M_PI) * 1000) / 1000; 
   } else if (resource.compare("GRIPPER") == 0) {
     float gap = GetCurrentPos("l_gripper_finger_joint") +
