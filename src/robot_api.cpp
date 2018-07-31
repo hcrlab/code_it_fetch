@@ -154,7 +154,7 @@ void RobotApi::GetLocation(const code_it_msgs::GetLocationGoalConstPtr &goal) {
     poses[i] = srv.response.pose_stamped.pose;
   }
   
-  code_it_msgs::GetLocationResult::ConstPtr result;
+  code_it_msgs::GetLocationResult result;
 
   for (unsigned int i = 0; i < 1024; i++) {
     geometry_msgs::Pose nextpose = poses[i];
