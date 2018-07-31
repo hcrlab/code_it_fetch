@@ -37,11 +37,12 @@ typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
     TorsoClient;
 
 namespace code_it_fetch {
-RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
-                   NavClient *nav_client, HeadClient *head_client,
-                   PbdClient *pbd_client, GripperClient *gripper_client,
-                   TorsoClient *torso_client)
+RobotApi::RobotApi(rapid::fetch::Fetch *robot, ros::ServiceClient *loc_client,
+	       	   BlinkyClient *blinky_client, NavClient *nav_client,
+		   HeadClient *head_client, PbdClient *pbd_client,
+		   GripperClient *gripper_client, TorsoClient *torso_client)
     : robot_(robot),
+      loc_client_(loc_client),
       blinky_client_(blinky_client),
       nav_client_(nav_client),
       head_client_(head_client),
@@ -53,6 +54,8 @@ RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
       display_message_server_("/code_it/api/display_message",
                               boost::bind(&RobotApi::DisplayMessage, this, _1),
                               false),
+      get_loc_server_("/code_it/api/get_location",
+                      boost::bind(&RobotApi::GetLocation, this, _1), false),
       get_pos_server_("/code_it/api/get_position",
                       boost::bind(&RobotApi::GetPosition, this, _1), false),
       go_to_server_("/code_it/api/go_to",
@@ -67,6 +70,7 @@ RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
                         boost::bind(&RobotApi::SetTorso, this, _1), false) {
   ask_mc_server_.start();
   display_message_server_.start();
+  get_loc_server_.start();
   get_pos_server_.start();
   go_to_server_.start();
   move_head_server_.start();
@@ -140,6 +144,36 @@ void RobotApi::DisplayMessage(
   code_it_msgs::DisplayMessageResult result;
   display_message_server_.setSucceeded(result);
 }
+
+void RobotApi::GetLocation(const code_it_msgs::GetLocationGoalConstPtr &goal) { 
+  location_server::GetPoseByName srv;
+  geometry_msgs::Pose poses[1024] = {};
+  for (unsigned int i = 0; i < 1024; i++) {
+    srv.request.name = pose_names[i];
+    loc_client_->call(srv);
+    poses[i] = srv.response.pose_stamped.pose;
+  }
+  
+  code_it_msgs::GetLocationResult::ConstPtr result;
+
+  for (unsigned int i = 0; i < 1024; i++) {
+    geometry_msgs::Pose nextpose = poses[i];
+    if (nextpose.position.x == curr_pose.position.x &&
+        nextpose.position.y == curr_pose.position.y && 
+        nextpose.position.z == curr_pose.position.z &&
+	nextpose.orientation.x == curr_pose.orientation.x &&
+	nextpose.orientation.y == curr_pose.orientation.y &&
+	nextpose.orientation.z == curr_pose.orientation.z &&
+	nextpose.orientation.w == curr_pose.orientation.w) {
+      result.name = pose_names[i];
+      get_loc_server_.setSucceeded(result);
+      return;
+    }
+  }
+  result.name = "Not a named location";
+  get_loc_server_.setSucceeded(result);
+}  
+
 
 void RobotApi::GetPosition(const code_it_msgs::GetPositionGoalConstPtr &goal) {
   string resource = goal->name;

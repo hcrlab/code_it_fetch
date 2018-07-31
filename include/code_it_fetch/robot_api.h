@@ -8,6 +8,7 @@
 #include "blinky/FaceAction.h"
 #include "code_it_msgs/AskMultipleChoiceAction.h"
 #include "code_it_msgs/DisplayMessageAction.h"
+#include "code_it_msgs/GetLocationAction.h"
 #include "code_it_msgs/GetPositionAction.h"
 #include "code_it_msgs/GoToAction.h"
 #include "code_it_msgs/MoveHeadAction.h"
@@ -17,12 +18,14 @@
 #include "code_it_msgs/SetTorsoAction.h"
 #include "control_msgs/FollowJointTrajectoryAction.h"
 #include "control_msgs/GripperCommandAction.h"
+#include "geometry_msgs/Pose.h"
+#include "location_server/GetPoseByName.h"
+#include "map_annotator/PoseNames.h"
 #include "map_annotator/GoToLocationAction.h"
 #include "rapid_fetch/fetch.h"
 #include "rapid_pbd_msgs/ExecuteProgramAction.h"
 #include "ros/ros.h"
 #include "std_msgs/Bool.h"
-
 using std::string;
 
 namespace code_it_fetch {
@@ -36,12 +39,15 @@ static const char OPEN_GRIPPER[] = "Failed to open gripper.";
 
 string joint_states_names[30] = {};
 float joint_states_pos[30] = {};
+string pose_names[1024] = {};
+geometry_msgs::Pose curr_pose;
 
 class RobotApi {
  public:
   // Does not take ownership of the Fetch pointer.
   RobotApi(
       rapid::fetch::Fetch* robot,
+      ros::ServiceClient* loc_client,
       actionlib::SimpleActionClient<blinky::FaceAction>* blinky_client,
       actionlib::SimpleActionClient<map_annotator::GoToLocationAction>*
           nav_client,
@@ -63,10 +69,12 @@ class RobotApi {
   void SetTorso(const code_it_msgs::SetTorsoGoalConstPtr& goal);
   void HandleProgramStopped(const std_msgs::Bool& msg);
   void GetPosition(const code_it_msgs::GetPositionGoalConstPtr& goal);
+  void GetLocation(const code_it_msgs::GetLocationGoalConstPtr& goal);
   float GetCurrentPos(const string joint_name);
-
+  
  private:
   rapid::fetch::Fetch* const robot_;
+  ros::ServiceClient* loc_client_;
   actionlib::SimpleActionClient<blinky::FaceAction>* blinky_client_;
   actionlib::SimpleActionClient<map_annotator::GoToLocationAction>* nav_client_;
   actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>*
@@ -83,6 +91,8 @@ class RobotApi {
       display_message_server_;
   actionlib::SimpleActionServer<code_it_msgs::GetPositionAction>
       get_pos_server_;
+  actionlib::SimpleActionServer<code_it_msgs::GetLocationAction>
+      get_loc_server_;
   actionlib::SimpleActionServer<code_it_msgs::GoToAction> go_to_server_;
   actionlib::SimpleActionServer<code_it_msgs::MoveHeadAction> move_head_server_;
   actionlib::SimpleActionServer<code_it_msgs::RunPbdActionAction>

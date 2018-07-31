@@ -19,11 +19,24 @@ void jointCallback(const sensor_msgs::JointState::ConstPtr& msg) {
   }
 }
 
+void locationCallback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
+  code_it_fetch::curr_pose = msg->pose;
+}
+
+void posesCallback(const map_annotator::PoseNames::ConstPtr& msg) {
+  for (unsigned int i = 0; i < msg->names.size(); i++) {
+    code_it_fetch::pose_names[i] = msg->names[i];
+  }
+}
+
 int main(int argc, char** argv) {
   ros::init(argc, argv, "code_it_fetch");
   ros::NodeHandle nh;
   ros::AsyncSpinner spinner(4);
   ros::Subscriber joint_sub = nh.subscribe("/joint_states", 10, jointCallback);
+  ros::Subscriber location_sub = nh.subscribe("/amcl_pose", 10, locationCallback);
+  ros::Subscriber poses_sub = nh.subscribe("/map_annotator/pose_names", 10, posesCallback);
+  ros::ServiceClient loc_client = nh.serviceClient<location_server::GetPoseByName>("location_db/get_by_name");
   spinner.start();
 
   rapid::fetch::Fetch* robot = rapid::fetch::BuildReal();
@@ -64,7 +77,7 @@ int main(int argc, char** argv) {
     ROS_WARN("Waiting for torso server...");
   }
 
-  RobotApi api(robot, &blinky_client, &nav_client, &head_client, &pbd_client,
+  RobotApi api(robot, &loc_client, &blinky_client, &nav_client, &head_client, &pbd_client,
                &gripper_client, &torso_client);
 
   ros::ServiceServer say_srv =
