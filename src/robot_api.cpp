@@ -27,6 +27,8 @@ using std::string;
 typedef actionlib::SimpleActionClient<blinky::FaceAction> BlinkyClient;
 typedef actionlib::SimpleActionClient<map_annotator::GoToLocationAction>
     NavClient;
+typedef actionlib::SimpleActionClient<map_annotator::GetPoseAction>
+    PoseClient;
 typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
     HeadClient;
 typedef actionlib::SimpleActionClient<rapid_pbd_msgs::ExecuteProgramAction>
@@ -37,14 +39,14 @@ typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
     TorsoClient;
 
 namespace code_it_fetch {
-RobotApi::RobotApi(rapid::fetch::Fetch *robot, ros::ServiceClient *loc_client,
-	       	   BlinkyClient *blinky_client, NavClient *nav_client,
+RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
+	           NavClient *nav_client, PoseClient *pose_client,
 		   HeadClient *head_client, PbdClient *pbd_client,
 		   GripperClient *gripper_client, TorsoClient *torso_client)
     : robot_(robot),
-      loc_client_(loc_client),
       blinky_client_(blinky_client),
       nav_client_(nav_client),
+      pose_client_(pose_client),
       head_client_(head_client),
       pbd_client_(pbd_client),
       gripper_client_(gripper_client),
@@ -146,18 +148,15 @@ void RobotApi::DisplayMessage(
 }
 
 void RobotApi::GetLocation(const code_it_msgs::GetLocationGoalConstPtr &goal) { 
-  location_server::GetPoseByName srv;
-  geometry_msgs::Pose poses[1024] = {};
-  for (unsigned int i = 0; i < 1024; i++) {
-    srv.request.name = pose_names[i];
-    loc_client_->call(srv);
-    poses[i] = srv.response.pose_stamped.pose;
-  }
-  
   code_it_msgs::GetLocationResult result;
 
   for (unsigned int i = 0; i < 1024; i++) {
-    geometry_msgs::Pose nextpose = poses[i];
+    string nextname = pose_names[i];
+    map_annotator::GetPoseGoal pose_goal;
+    pose_goal.name = nextname;
+    pose_client_->sendGoalAndWait(pose_goal); 
+    map_annotator::GetPoseResult::ConstPtr pose_result = pose_client_->getResult();
+    geometry_msgs::Pose nextpose = pose_result->pose;
     if (nextpose.position.x == curr_pose.position.x &&
         nextpose.position.y == curr_pose.position.y && 
         nextpose.position.z == curr_pose.position.z &&

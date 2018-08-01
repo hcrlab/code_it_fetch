@@ -22,6 +22,7 @@
 #include "location_server/GetPoseByName.h"
 #include "map_annotator/PoseNames.h"
 #include "map_annotator/GoToLocationAction.h"
+#include "map_annotator/GetPoseAction.h"
 #include "rapid_fetch/fetch.h"
 #include "rapid_pbd_msgs/ExecuteProgramAction.h"
 #include "ros/ros.h"
@@ -47,10 +48,11 @@ class RobotApi {
   // Does not take ownership of the Fetch pointer.
   RobotApi(
       rapid::fetch::Fetch* robot,
-      ros::ServiceClient* loc_client,
       actionlib::SimpleActionClient<blinky::FaceAction>* blinky_client,
       actionlib::SimpleActionClient<map_annotator::GoToLocationAction>*
           nav_client,
+      actionlib::SimpleActionClient<map_annotator::GetPoseAction>*
+          pose_client,
       actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>*
           head_client,
       actionlib::SimpleActionClient<rapid_pbd_msgs::ExecuteProgramAction>*
@@ -74,9 +76,9 @@ class RobotApi {
   
  private:
   rapid::fetch::Fetch* const robot_;
-  ros::ServiceClient* loc_client_;
   actionlib::SimpleActionClient<blinky::FaceAction>* blinky_client_;
   actionlib::SimpleActionClient<map_annotator::GoToLocationAction>* nav_client_;
+  actionlib::SimpleActionClient<map_annotator::GetPoseAction>* pose_client_;
   actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>*
       head_client_;
   actionlib::SimpleActionClient<rapid_pbd_msgs::ExecuteProgramAction>*
@@ -89,10 +91,10 @@ class RobotApi {
       ask_mc_server_;
   actionlib::SimpleActionServer<code_it_msgs::DisplayMessageAction>
       display_message_server_;
-  actionlib::SimpleActionServer<code_it_msgs::GetPositionAction>
-      get_pos_server_;
   actionlib::SimpleActionServer<code_it_msgs::GetLocationAction>
       get_loc_server_;
+  actionlib::SimpleActionServer<code_it_msgs::GetPositionAction>
+      get_pos_server_;
   actionlib::SimpleActionServer<code_it_msgs::GoToAction> go_to_server_;
   actionlib::SimpleActionServer<code_it_msgs::MoveHeadAction> move_head_server_;
   actionlib::SimpleActionServer<code_it_msgs::RunPbdActionAction>

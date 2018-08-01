@@ -36,7 +36,6 @@ int main(int argc, char** argv) {
   ros::Subscriber joint_sub = nh.subscribe("/joint_states", 10, jointCallback);
   ros::Subscriber location_sub = nh.subscribe("/amcl_pose", 10, locationCallback);
   ros::Subscriber poses_sub = nh.subscribe("/map_annotator/pose_names", 10, posesCallback);
-  ros::ServiceClient loc_client = nh.serviceClient<location_server::GetPoseByName>("location_db/get_by_name");
   spinner.start();
 
   rapid::fetch::Fetch* robot = rapid::fetch::BuildReal();
@@ -50,6 +49,12 @@ int main(int argc, char** argv) {
   actionlib::SimpleActionClient<map_annotator::GoToLocationAction> nav_client(
       "/map_annotator/go_to_location", true);
   if (!nav_client.waitForServer(ros::Duration(5.0))) {
+    ROS_ERROR("Map annotator server not available!");
+  }
+
+  actionlib::SimpleActionClient<map_annotator::GetPoseAction> pose_client(
+      "/map_annotator/get_pose", true);
+  if (!pose_client.waitForServer(ros::Duration(5.0))) {
     ROS_ERROR("Map annotator server not available!");
   }
 
@@ -77,7 +82,7 @@ int main(int argc, char** argv) {
     ROS_WARN("Waiting for torso server...");
   }
 
-  RobotApi api(robot, &loc_client, &blinky_client, &nav_client, &head_client, &pbd_client,
+  RobotApi api(robot, &blinky_client, &nav_client, &pose_client, &head_client, &pbd_client,
                &gripper_client, &torso_client);
 
   ros::ServiceServer say_srv =
