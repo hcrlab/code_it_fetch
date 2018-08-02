@@ -27,8 +27,7 @@ using std::string;
 typedef actionlib::SimpleActionClient<blinky::FaceAction> BlinkyClient;
 typedef actionlib::SimpleActionClient<map_annotator::GoToLocationAction>
     NavClient;
-typedef actionlib::SimpleActionClient<map_annotator::GetPoseAction>
-    PoseClient;
+typedef actionlib::SimpleActionClient<map_annotator::GetPoseAction> PoseClient;
 typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
     HeadClient;
 typedef actionlib::SimpleActionClient<rapid_pbd_msgs::ExecuteProgramAction>
@@ -40,9 +39,9 @@ typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
 
 namespace code_it_fetch {
 RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
-	           NavClient *nav_client, PoseClient *pose_client,
-		   HeadClient *head_client, PbdClient *pbd_client,
-		   GripperClient *gripper_client, TorsoClient *torso_client)
+                   NavClient *nav_client, PoseClient *pose_client,
+                   HeadClient *head_client, PbdClient *pbd_client,
+                   GripperClient *gripper_client, TorsoClient *torso_client)
     : robot_(robot),
       blinky_client_(blinky_client),
       nav_client_(nav_client),
@@ -147,32 +146,48 @@ void RobotApi::DisplayMessage(
   display_message_server_.setSucceeded(result);
 }
 
-void RobotApi::GetLocation(const code_it_msgs::GetLocationGoalConstPtr &goal) { 
+void RobotApi::GetLocation(const code_it_msgs::GetLocationGoalConstPtr &goal) {
   code_it_msgs::GetLocationResult result;
 
   for (unsigned int i = 0; i < 1024; i++) {
     string nextname = pose_names[i];
     map_annotator::GetPoseGoal pose_goal;
     pose_goal.name = nextname;
-    pose_client_->sendGoalAndWait(pose_goal); 
-    map_annotator::GetPoseResult::ConstPtr pose_result = pose_client_->getResult();
-    geometry_msgs::Pose nextpose = pose_result->pose;
-    if (nextpose.position.x == curr_pose.position.x &&
-        nextpose.position.y == curr_pose.position.y && 
-        nextpose.position.z == curr_pose.position.z &&
-	nextpose.orientation.x == curr_pose.orientation.x &&
-	nextpose.orientation.y == curr_pose.orientation.y &&
-	nextpose.orientation.z == curr_pose.orientation.z &&
-	nextpose.orientation.w == curr_pose.orientation.w) {
-      result.name = pose_names[i];
-      get_loc_server_.setSucceeded(result);
-      return;
+    pose_client_->sendGoalAndWait(pose_goal);
+    map_annotator::GetPoseResult::ConstPtr pose_result =
+        pose_client_->getResult();
+    if (pose_result->error.compare("") != 0) {
+      geometry_msgs::Pose nextpose = pose_result->pose;
+      if (CompareLocation(nextpose, curr_pose)) {
+        result.name = nextname;
+        get_loc_server_.setSucceeded(result);
+        return;
+      }
     }
   }
   result.name = "Not a named location";
   get_loc_server_.setSucceeded(result);
-}  
+}
 
+bool RobotApi::CompareLocation(const geometry_msgs::Pose &pose1,
+                               const geometry_msgs::Pose &pose2) {
+  if (abs(pose1.position.x - pose2.position.x) > 0.2) {
+    return false;
+  } else if (abs(pose1.position.y - pose2.position.y) > 0.2) {
+    return false;
+  } else if (abs(pose1.position.z - pose2.position.z) > 0.2) {
+    return false;
+  } else if (abs(pose1.orientation.x - pose2.orientation.x) > 0.2) {
+    return false;
+  } else if (abs(pose1.orientation.y - pose2.orientation.y) > 0.2) {
+    return false;
+  } else if (abs(pose1.orientation.z - pose2.orientation.z) > 0.2) {
+    return false;
+  } else if (abs(pose1.orientation.w - pose2.orientation.w) > 0.2) {
+    return false;
+  }
+  return true;
+}
 
 void RobotApi::GetPosition(const code_it_msgs::GetPositionGoalConstPtr &goal) {
   string resource = goal->name;
@@ -180,11 +195,11 @@ void RobotApi::GetPosition(const code_it_msgs::GetPositionGoalConstPtr &goal) {
   if (resource.compare("TORSO") == 0) {
     result.position = floor(GetCurrentPos("torso_lift_joint") * 1000) / 1000;
   } else if (resource.compare("HEADPAN") == 0) {
-    float pan = GetCurrentPos("head_pan_joint");	  
-    result.position = floor(((pan * 180.0) / M_PI) * 1000) / 1000; 
+    float pan = GetCurrentPos("head_pan_joint");
+    result.position = floor(((pan * 180.0) / M_PI) * 1000) / 1000;
   } else if (resource.compare("HEADTILT") == 0) {
-    float tilt = GetCurrentPos("head_tilt_joint");	  
-    result.position = floor(((tilt * 180.0) / M_PI) * 1000) / 1000; 
+    float tilt = GetCurrentPos("head_tilt_joint");
+    result.position = floor(((tilt * 180.0) / M_PI) * 1000) / 1000;
   } else if (resource.compare("GRIPPER") == 0) {
     float gap = GetCurrentPos("l_gripper_finger_joint") +
                 GetCurrentPos("r_gripper_finger_joint");

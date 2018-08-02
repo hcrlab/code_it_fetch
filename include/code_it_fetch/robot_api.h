@@ -20,9 +20,9 @@
 #include "control_msgs/GripperCommandAction.h"
 #include "geometry_msgs/Pose.h"
 #include "location_server/GetPoseByName.h"
-#include "map_annotator/PoseNames.h"
-#include "map_annotator/GoToLocationAction.h"
 #include "map_annotator/GetPoseAction.h"
+#include "map_annotator/GoToLocationAction.h"
+#include "map_annotator/PoseNames.h"
 #include "rapid_fetch/fetch.h"
 #include "rapid_pbd_msgs/ExecuteProgramAction.h"
 #include "ros/ros.h"
@@ -51,8 +51,7 @@ class RobotApi {
       actionlib::SimpleActionClient<blinky::FaceAction>* blinky_client,
       actionlib::SimpleActionClient<map_annotator::GoToLocationAction>*
           nav_client,
-      actionlib::SimpleActionClient<map_annotator::GetPoseAction>*
-          pose_client,
+      actionlib::SimpleActionClient<map_annotator::GetPoseAction>* pose_client,
       actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>*
           head_client,
       actionlib::SimpleActionClient<rapid_pbd_msgs::ExecuteProgramAction>*
@@ -71,9 +70,11 @@ class RobotApi {
   void SetTorso(const code_it_msgs::SetTorsoGoalConstPtr& goal);
   void HandleProgramStopped(const std_msgs::Bool& msg);
   void GetPosition(const code_it_msgs::GetPositionGoalConstPtr& goal);
+  bool CompareLocation(const geometry_msgs::Pose& pose1,
+                       const geometry_msgs::Pose& pose2);
   void GetLocation(const code_it_msgs::GetLocationGoalConstPtr& goal);
   float GetCurrentPos(const string joint_name);
-  
+
  private:
   rapid::fetch::Fetch* const robot_;
   actionlib::SimpleActionClient<blinky::FaceAction>* blinky_client_;
