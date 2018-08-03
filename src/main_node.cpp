@@ -10,12 +10,68 @@
 using code_it_fetch::RobotApi;
 
 void jointCallback(const sensor_msgs::JointState::ConstPtr& msg) {
+  float l_gripper_vel_new;
+  float r_gripper_vel_new;
+  float l_gripper_pos;
+  float r_gripper_pos;
+  ROS_ERROR_STREAM("new callback");
+  //updating info used from rostopic /joint_states
   for (unsigned int i = 0; i < msg->name.size(); i++) {
     if (i >= msg->position.size()) {
       continue;
     }
+    
+   //ROS_WARN_STREAM(msg->name[i]);
+   //ROS_WARN_STREAM(msg->position[i]);
+   //ROS_WARN_STREAM(msg->velocity[i]);
+    //update global position and velocity arrays (disregards the zero values because joint_states sometimes returns exactly zero when it shouldn't)
     code_it_fetch::joint_states_names[i] = msg->name[i];
-    code_it_fetch::joint_states_pos[i] = msg->position[i];
+    if(msg->position[i] != 0){
+      ROS_WARN_STREAM(code_it_fetch::joint_states_names[i]);
+      ROS_WARN("pos: %f", msg->position[i]);
+      code_it_fetch::joint_states_pos[i] = msg->position[i];
+    }
+    if(msg->velocity[i] != 0){
+      //ROS_WARN_STREAM(code_it_fetch::joint_states_names[i]);
+      ROS_WARN("vel: %f", msg->velocity[i]);
+      code_it_fetch::joint_states_vel[i] = msg->velocity[i];
+    }
+
+    //update local gripper velocity and position values
+    if (code_it_fetch::checkingIfSlipped) {
+    	if (code_it_fetch::joint_states_names[i] == "l_gripper_finger_joint") {
+	    l_gripper_vel_new = code_it_fetch::joint_states_vel[i]; 
+	    l_gripper_pos = code_it_fetch::joint_states_pos[i];
+	} else if (code_it_fetch::joint_states_names[i] == "r_gripper_finger_joint") {
+	    r_gripper_vel_new = code_it_fetch::joint_states_vel[i];
+	    r_gripper_pos = code_it_fetch::joint_states_pos[i];
+	}
+    }
+  }
+
+  //updating whether the gripper has slipped
+  if (code_it_fetch::checkingIfSlipped) {
+    
+    //wasGrasping is true if the velocities of the gripper fingers are between GRIPPER_VEL_TOLERANCE and -1 * GRIPPER_VEL_TOLERANCE 
+    bool wasGrasping = (code_it_fetch::l_gripper_vel_old <= code_it_fetch::GRIPPER_VEL_TOLERANCE) && (code_it_fetch::l_gripper_vel_old >= -1 * code_it_fetch::GRIPPER_VEL_TOLERANCE);
+       // && (code_it_fetch::r_gripper_vel_old <= code_it_fetch::GRIPPER_VEL_TOLERANCE) && (code_it_fetch::r_gripper_vel_old >= -1 * code_it_fetch::GRIPPER_VEL_TOLERANCE);
+   
+     //closing is positive velocity
+     bool nowClosing = (l_gripper_vel_new >= (code_it_fetch::GRIPPER_VEL_TOLERANCE)); // && (r_gripper_vel_new < (-1 * code_it_fetch::GRIPPER_VEL_TOLERANCE));
+     
+     bool isOpen = l_gripper_pos >= 0.045;// && r_gripper_pos >= 0.04; //all the way open w/ half millimeter tolerance
+     //ROS_WARN("L %f", l_gripper_pos);
+     //ROS_WARN("R %f", r_gripper_pos);
+     //ROS_WARN("isOpen%d", isOpen);
+
+     if (wasGrasping && nowClosing && !isOpen) {
+     	code_it_fetch::gripperSlipped = true; //this value will be true until the gripper sent another goal (to open or close)
+     }
+     //update old velocity values
+     code_it_fetch::l_gripper_vel_old = l_gripper_vel_new;
+     code_it_fetch::r_gripper_vel_old = r_gripper_vel_new;
+
+     //put in a check for position so that when it closes, we dont get true.
   }
 }
 
@@ -63,6 +119,7 @@ int main(int argc, char** argv) {
   while (ros::ok() && !torso_client.waitForServer(ros::Duration(5.0))) {
     ROS_WARN("Waiting for torso server...");
   }
+
 
   RobotApi api(robot, &blinky_client, &nav_client, &head_client, &pbd_client,
                &gripper_client, &torso_client);

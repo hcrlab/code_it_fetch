@@ -62,7 +62,9 @@ RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
       set_gripper_server_("/code_it/api/set_gripper",
                           boost::bind(&RobotApi::SetGripper, this, _1), false),
       set_torso_server_("/code_it/api/set_torso",
-                        boost::bind(&RobotApi::SetTorso, this, _1), false) {
+                        boost::bind(&RobotApi::SetTorso, this, _1), false),    
+      slip_gripper_server_("/code_it/api/slip_gripper",
+                          boost::bind(&RobotApi::SlipGripper, this, _1), false){
   ask_mc_server_.start();
   display_message_server_.start();
   go_to_server_.start();
@@ -70,6 +72,7 @@ RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
   rapid_pbd_server_.start();
   set_gripper_server_.start();
   set_torso_server_.start();
+  slip_gripper_server_.start();
 }
 
 void RobotApi::AskMC(const code_it_msgs::AskMultipleChoiceGoalConstPtr &goal) {
@@ -257,6 +260,9 @@ void RobotApi::SetGripper(const code_it_msgs::SetGripperGoalConstPtr &goal) {
   float OPENED_POS = 0.10;
   int MIN_EFFORT = 35;
   int MAX_EFFORT = 100;
+  
+  //reset whether the gripper has slipped (part of slipGripper code)
+  gripperSlipped = false;
 
   int action = goal->action;
 
@@ -358,5 +364,24 @@ float RobotApi::GetCurrentPos(const string joint_name) {
   }
   return pos;
 }
+
+float RobotApi::GetCurrentVel(const string joint_name) {
+  float vel = 0;
+  for (unsigned int i = 0; i < 30; i++) {  // initialized to 30 in .h file
+    if (joint_name.compare(joint_states_names[i]) == 0) {
+      vel = joint_states_vel[i];
+    }
+  }
+  return vel;
+}
+
+void RobotApi::SlipGripper(const code_it_msgs::SlipGripperGoalConstPtr& goal) {
+ 
+  code_it_msgs::SlipGripperResult res;
+  res.slipped = gripperSlipped;
+  slip_gripper_server_.setSucceeded(res);
+  return;
+}
+
 
 }  // namespace code_it_fetch
