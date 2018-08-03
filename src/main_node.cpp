@@ -3,6 +3,7 @@
 #include "actionlib/client/simple_action_client.h"
 #include "blinky/FaceAction.h"
 #include "code_it_fetch/robot_api.h"
+#include "geometry_msgs/PoseWithCovarianceStamped.h"
 #include "map_annotator/GoToLocationAction.h"
 #include "rapid_fetch/fetch.h"
 #include "rapid_pbd_msgs/ExecuteProgramAction.h"
@@ -19,13 +20,16 @@ void jointCallback(const sensor_msgs::JointState::ConstPtr& msg) {
   }
 }
 
-void locationCallback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
-  code_it_fetch::curr_pose = msg->pose;
+void locationCallback(
+    const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg) {
+  code_it_fetch::curr_pose = msg->pose.pose;
 }
 
 void posesCallback(const map_annotator::PoseNames::ConstPtr& msg) {
+  //  for (unsigned int i = 0; i < msg->names.size(); i++) {
   for (unsigned int i = 0; i < msg->names.size(); i++) {
-    code_it_fetch::pose_names[i] = msg->names[i];
+    //    code_it_fetch::pose_names[i] = msg->names[i];
+    code_it_fetch::pose_names.push_back(msg->names[i]);
   }
 }
 
@@ -34,8 +38,10 @@ int main(int argc, char** argv) {
   ros::NodeHandle nh;
   ros::AsyncSpinner spinner(4);
   ros::Subscriber joint_sub = nh.subscribe("/joint_states", 10, jointCallback);
-  ros::Subscriber location_sub = nh.subscribe("/amcl_pose", 10, locationCallback);
-  ros::Subscriber poses_sub = nh.subscribe("/map_annotator/pose_names", 10, posesCallback);
+  ros::Subscriber location_sub =
+      nh.subscribe("/amcl_pose", 10, locationCallback);
+  ros::Subscriber poses_sub =
+      nh.subscribe("/map_annotator/pose_names", 10, posesCallback);
   spinner.start();
 
   rapid::fetch::Fetch* robot = rapid::fetch::BuildReal();
@@ -82,8 +88,8 @@ int main(int argc, char** argv) {
     ROS_WARN("Waiting for torso server...");
   }
 
-  RobotApi api(robot, &blinky_client, &nav_client, &pose_client, &head_client, &pbd_client,
-               &gripper_client, &torso_client);
+  RobotApi api(robot, &blinky_client, &nav_client, &pose_client, &head_client,
+               &pbd_client, &gripper_client, &torso_client);
 
   ros::ServiceServer say_srv =
       nh.advertiseService("code_it/api/say", &RobotApi::Say, &api);

@@ -2,6 +2,7 @@
 #define _CODE_IT_FETCH_ROBOT_API_H_
 
 #include <string>
+#include <vector>
 
 #include "actionlib/client/simple_action_client.h"
 #include "actionlib/server/simple_action_server.h"
@@ -28,6 +29,7 @@
 #include "ros/ros.h"
 #include "std_msgs/Bool.h"
 using std::string;
+using std::vector;
 
 namespace code_it_fetch {
 namespace errors {
@@ -40,7 +42,8 @@ static const char OPEN_GRIPPER[] = "Failed to open gripper.";
 
 string joint_states_names[30] = {};
 float joint_states_pos[30] = {};
-string pose_names[1024] = {};
+// string pose_names[1024] = {};
+vector<string> pose_names;
 geometry_msgs::Pose curr_pose;
 
 class RobotApi {

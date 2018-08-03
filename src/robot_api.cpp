@@ -149,14 +149,14 @@ void RobotApi::DisplayMessage(
 void RobotApi::GetLocation(const code_it_msgs::GetLocationGoalConstPtr &goal) {
   code_it_msgs::GetLocationResult result;
 
-  for (unsigned int i = 0; i < 1024; i++) {
+  for (unsigned int i = 0; i < 20; i++) {
     string nextname = pose_names[i];
     map_annotator::GetPoseGoal pose_goal;
     pose_goal.name = nextname;
     pose_client_->sendGoalAndWait(pose_goal);
     map_annotator::GetPoseResult::ConstPtr pose_result =
         pose_client_->getResult();
-    if (pose_result->error.compare("") != 0) {
+    if (pose_result->error.compare("") == 0) {
       geometry_msgs::Pose nextpose = pose_result->pose;
       if (CompareLocation(nextpose, curr_pose)) {
         result.name = nextname;
@@ -177,13 +177,13 @@ bool RobotApi::CompareLocation(const geometry_msgs::Pose &pose1,
     return false;
   } else if (abs(pose1.position.z - pose2.position.z) > 0.2) {
     return false;
-  } else if (abs(pose1.orientation.x - pose2.orientation.x) > 0.2) {
+  } else if (abs(pose1.orientation.x - pose2.orientation.x) > 0.3) {
     return false;
-  } else if (abs(pose1.orientation.y - pose2.orientation.y) > 0.2) {
+  } else if (abs(pose1.orientation.y - pose2.orientation.y) > 0.3) {
     return false;
-  } else if (abs(pose1.orientation.z - pose2.orientation.z) > 0.2) {
+  } else if (abs(pose1.orientation.z - pose2.orientation.z) > 0.3) {
     return false;
-  } else if (abs(pose1.orientation.w - pose2.orientation.w) > 0.2) {
+  } else if (abs(pose1.orientation.w - pose2.orientation.w) > 0.3) {
     return false;
   }
   return true;
