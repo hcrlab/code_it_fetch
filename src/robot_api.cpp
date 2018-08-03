@@ -171,19 +171,21 @@ void RobotApi::GetLocation(const code_it_msgs::GetLocationGoalConstPtr &goal) {
 
 bool RobotApi::CompareLocation(const geometry_msgs::Pose &pose1,
                                const geometry_msgs::Pose &pose2) {
-  if (abs(pose1.position.x - pose2.position.x) > 0.2) {
+  float pos_tol = 0.2;
+  float ori_tol = 0.3;
+  if (abs(pose1.position.x - pose2.position.x) > pos_tol) {
     return false;
-  } else if (abs(pose1.position.y - pose2.position.y) > 0.2) {
+  } else if (abs(pose1.position.y - pose2.position.y) > pos_tol) {
     return false;
-  } else if (abs(pose1.position.z - pose2.position.z) > 0.2) {
+  } else if (abs(pose1.position.z - pose2.position.z) > pos_tol) {
     return false;
-  } else if (abs(pose1.orientation.x - pose2.orientation.x) > 0.3) {
+  } else if (abs(pose1.orientation.x - pose2.orientation.x) > ori_tol) {
     return false;
-  } else if (abs(pose1.orientation.y - pose2.orientation.y) > 0.3) {
+  } else if (abs(pose1.orientation.y - pose2.orientation.y) > ori_tol) {
     return false;
-  } else if (abs(pose1.orientation.z - pose2.orientation.z) > 0.3) {
+  } else if (abs(pose1.orientation.z - pose2.orientation.z) > ori_tol) {
     return false;
-  } else if (abs(pose1.orientation.w - pose2.orientation.w) > 0.3) {
+  } else if (abs(pose1.orientation.w - pose2.orientation.w) > ori_tol) {
     return false;
   }
   return true;
@@ -192,19 +194,20 @@ bool RobotApi::CompareLocation(const geometry_msgs::Pose &pose1,
 void RobotApi::GetPosition(const code_it_msgs::GetPositionGoalConstPtr &goal) {
   string resource = goal->name;
   code_it_msgs::GetPositionResult result;
+  float value = 0;
   if (resource.compare("TORSO") == 0) {
-    result.position = floor(GetCurrentPos("torso_lift_joint") * 1000) / 1000;
+    value = GetCurrentPos("torso_lift_joint");
   } else if (resource.compare("HEADPAN") == 0) {
     float pan = GetCurrentPos("head_pan_joint");
-    result.position = floor(((pan * 180.0) / M_PI) * 1000) / 1000;
+    value = ((pan * 180.0) / M_PI);
   } else if (resource.compare("HEADTILT") == 0) {
     float tilt = GetCurrentPos("head_tilt_joint");
-    result.position = floor(((tilt * 180.0) / M_PI) * 1000) / 1000;
+    value = ((tilt * 180.0) / M_PI);
   } else if (resource.compare("GRIPPER") == 0) {
-    float gap = GetCurrentPos("l_gripper_finger_joint") +
-                GetCurrentPos("r_gripper_finger_joint");
-    result.position = floor(gap * 1000) / 1000;
+    value = GetCurrentPos("l_gripper_finger_joint") +
+            GetCurrentPos("r_gripper_finger_joint");
   }
+  result.position = floor(value * 1000) / 1000;
   get_pos_server_.setSucceeded(result);
 }
 

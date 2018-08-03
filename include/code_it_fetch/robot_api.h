@@ -40,9 +40,8 @@ static const char CLOSE_GRIPPER[] = "Failed to close gripper.";
 static const char OPEN_GRIPPER[] = "Failed to open gripper.";
 }  // namespace errors
 
-string joint_states_names[30] = {};
-float joint_states_pos[30] = {};
-// string pose_names[1024] = {};
+vector<string> joint_states_names;
+vector<float> joint_states_pos;
 vector<string> pose_names;
 geometry_msgs::Pose curr_pose;
 

@@ -12,11 +12,8 @@ using code_it_fetch::RobotApi;
 
 void jointCallback(const sensor_msgs::JointState::ConstPtr& msg) {
   for (unsigned int i = 0; i < msg->name.size(); i++) {
-    if (i >= msg->position.size()) {
-      continue;
-    }
-    code_it_fetch::joint_states_names[i] = msg->name[i];
-    code_it_fetch::joint_states_pos[i] = msg->position[i];
+    code_it_fetch::joint_states_names.push_back(msg->name[i]);
+    code_it_fetch::joint_states_pos.push_back(msg->position[i]);
   }
 }
 
@@ -26,9 +23,7 @@ void locationCallback(
 }
 
 void posesCallback(const map_annotator::PoseNames::ConstPtr& msg) {
-  //  for (unsigned int i = 0; i < msg->names.size(); i++) {
   for (unsigned int i = 0; i < msg->names.size(); i++) {
-    //    code_it_fetch::pose_names[i] = msg->names[i];
     code_it_fetch::pose_names.push_back(msg->names[i]);
   }
 }
