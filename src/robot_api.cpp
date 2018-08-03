@@ -149,25 +149,23 @@ void RobotApi::GoTo(const code_it_msgs::GoToGoalConstPtr &goal) {
     if (go_to_server_.isPreemptRequested() || !ros::ok()) {
       nav_client_->cancelAllGoals();
       go_to_server_.setPreempted();
-      return;
     }
     ros::spinOnce();
   }
-  if (nav_client_->getState() == actionlib::SimpleClientGoalState::PREEMPTED) {
-    nav_client_->cancelAllGoals();
-    go_to_server_.setPreempted();
-    return;
-  } else if (nav_client_->getState() ==
-             actionlib::SimpleClientGoalState::ABORTED) {
-    nav_client_->cancelAllGoals();
-    go_to_server_.setAborted();
-    return;
-  }
-
   map_annotator::GoToLocationResult::ConstPtr location_result =
       nav_client_->getResult();
   code_it_msgs::GoToResult result;
   result.error = location_result->error;
+  if (nav_client_->getState() == actionlib::SimpleClientGoalState::PREEMPTED) {
+    nav_client_->cancelAllGoals();
+    go_to_server_.setPreempted(result);
+    return;
+  } else if (nav_client_->getState() ==
+             actionlib::SimpleClientGoalState::ABORTED) {
+    nav_client_->cancelAllGoals();
+    go_to_server_.setAborted(result);
+    return;
+  }
   go_to_server_.setSucceeded(result);
 }
 
@@ -227,25 +225,23 @@ void RobotApi::RunPbdProgram(
     if (rapid_pbd_server_.isPreemptRequested() || !ros::ok()) {
       pbd_client_->cancelAllGoals();
       rapid_pbd_server_.setPreempted();
-      return;
     }
     ros::spinOnce();
   }
-  if (pbd_client_->getState() == actionlib::SimpleClientGoalState::PREEMPTED) {
-    pbd_client_->cancelAllGoals();
-    rapid_pbd_server_.setPreempted();
-    return;
-  } else if (pbd_client_->getState() ==
-             actionlib::SimpleClientGoalState::ABORTED) {
-    torso_client_->cancelAllGoals();
-    rapid_pbd_server_.setAborted();
-    return;
-  }
-
   rapid_pbd_msgs::ExecuteProgramResult::ConstPtr rapid_pbd_result =
       pbd_client_->getResult();
   code_it_msgs::RunPbdActionResult result;
   result.error = rapid_pbd_result->error;
+  if (pbd_client_->getState() == actionlib::SimpleClientGoalState::PREEMPTED) {
+    pbd_client_->cancelAllGoals();
+    rapid_pbd_server_.setPreempted(result);
+    return;
+  } else if (pbd_client_->getState() ==
+             actionlib::SimpleClientGoalState::ABORTED) {
+    torso_client_->cancelAllGoals();
+    rapid_pbd_server_.setAborted(result);
+    return;
+  }
   rapid_pbd_server_.setSucceeded(result);
 }
 
