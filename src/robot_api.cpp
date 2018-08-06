@@ -228,8 +228,8 @@ void RobotApi::RunPbdProgram(
       pbd_client_->getResult();
   code_it_msgs::RunPbdActionResult result;
   result.error = rapid_pbd_result->error;
-  if (pbd_client_->getState() == actionlib::SimpleClientGoalState::PREEMPTED
-      || rapid_pbd_server_.isPreemptRequested()) {
+  if (rapid_pbd_server_.isPreemptRequested()
+      || pbd_client_->getState() == actionlib::SimpleClientGoalState::PREEMPTED) {
     pbd_client_->cancelAllGoals();
     rapid_pbd_server_.setPreempted(result);
     return;
