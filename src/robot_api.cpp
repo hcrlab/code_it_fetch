@@ -356,22 +356,13 @@ void RobotApi::HandleProgramStopped(const std_msgs::Bool &msg) {
 }
 
 float RobotApi::GetCurrentPos(const string joint_name) {
-  float pos = 0;
-  for (unsigned int i = 0; i < 30; i++) {  // initialized to 30 in .h file
-    if (joint_name.compare(joint_states_names[i]) == 0) {
-      pos = joint_states_pos[i];
-    }
-  }
+  float pos = positions[joint_name]; //returns 0 if joint name doesn't exist in positions, and inserts a new key joint_name into the map (with value 0)
   return pos;
 }
 
 float RobotApi::GetCurrentVel(const string joint_name) {
-  float vel = 0;
-  for (unsigned int i = 0; i < 30; i++) {  // initialized to 30 in .h file
-    if (joint_name.compare(joint_states_names[i]) == 0) {
-      vel = joint_states_vel[i];
-    }
-  }
+  //float vel = 0;
+  float vel = velocities[joint_name]; //returns 0 if joint name doesn't exist in velocities, and inserts a new key joint_name into the map (with value 0)
   return vel;
 }
 

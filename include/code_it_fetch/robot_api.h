@@ -2,6 +2,7 @@
 #define _CODE_IT_FETCH_ROBOT_API_H_
 
 #include <string>
+#include <map>
 
 #include "actionlib/client/simple_action_client.h"
 #include "actionlib/server/simple_action_server.h"
@@ -24,6 +25,7 @@
 #include "std_msgs/Bool.h"
 
 using std::string;
+using std::map;
 
 namespace code_it_fetch {
 namespace errors {
@@ -34,14 +36,15 @@ static const char CLOSE_GRIPPER[] = "Failed to close gripper.";
 static const char OPEN_GRIPPER[] = "Failed to open gripper.";
 }  // namespace errors
 
-string joint_states_names[30] = {};
-float joint_states_pos[30] = {};
-float joint_states_vel[30] = {};
+map<string, float> positions;
+map<string, float> velocities;
 
 //global variables for slipGripper
 bool checkingIfSlipped = true; //set to false after implementing the fronend block that changes this value 
-bool gripperSlipped = false; 
-float l_gripper_vel_old = 0; //we may need to change what this is initialized to (possibly a positive value or null)
+bool gripperSlipped = false;
+float l_gripper_pos_old = 0;
+float l_gripper_vel_old = 0; 
+float r_gripper_pos_old = 0;
 float r_gripper_vel_old = 0;
 const float GRIPPER_VEL_TOLERANCE = 0.001; // 10^-3 -- we observed that gripper motion while still was around 10^-7 (note that floats have ~7 decimal precision)
 
