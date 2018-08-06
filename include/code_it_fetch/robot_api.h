@@ -42,10 +42,10 @@ map<string, float> velocities;
 //global variables for slipGripper
 bool checkingIfSlipped = true; //set to false after implementing the fronend block that changes this value 
 bool gripperSlipped = false;
-float l_gripper_pos_old = 0;
-float l_gripper_vel_old = 0; 
-float r_gripper_pos_old = 0;
-float r_gripper_vel_old = 0;
+float l_gripper_pos_old = 1; // all initialized to one because we want wasGrasping to be false in the first call to jointCallback
+float l_gripper_vel_old = 1; 
+float r_gripper_pos_old = 1;
+float r_gripper_vel_old = 1;
 const float GRIPPER_VEL_TOLERANCE = 0.001; // 10^-3 -- we observed that gripper motion while still was around 10^-7 (note that floats have ~7 decimal precision)
 
 class RobotApi {
