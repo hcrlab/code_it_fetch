@@ -20,7 +20,6 @@ install:
 - echo "deb http://packages.ros.org/ros/ubuntu $ROS_CI_DESKTOP main" | sudo tee /etc/apt/sources.list.d/ros-latest.list
 - wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
 - sudo apt-get update -qq
-- sudo apt-get install -qq -y ros-$ROS_DISTRO-moveit-*
 - sudo pip install -U setuptools
 - sudo pip install -U catkin_tools
 - source /opt/ros/$ROS_DISTRO/setup.bash
