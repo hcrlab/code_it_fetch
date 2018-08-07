@@ -39,7 +39,7 @@ void jointCallback(const sensor_msgs::JointState::ConstPtr& msg) {
        // && (code_it_fetch::r_gripper_vel_old <= code_it_fetch::GRIPPER_VEL_TOLERANCE) && (code_it_fetch::r_gripper_vel_old >= -1 * code_it_fetch::GRIPPER_VEL_TOLERANCE);
   
     //true if the gripper was open in the last callback
-    bool wasOpen = code_it_fetch::l_gripper_pos_old >= 0.05; 
+    bool wasOpen = code_it_fetch::l_gripper_pos_old >= 0.047; 
      
     //true if gripper is closed in current callback
     bool isClosed = l_gripper_pos_new <= 0.001;
