@@ -10,13 +10,6 @@
 
 using code_it_fetch::RobotApi;
 
-void jointCallback(const sensor_msgs::JointState::ConstPtr& msg) {
-  for (unsigned int i = 0; i < msg->name.size(); i++) {
-    code_it_fetch::joint_states_names.push_back(msg->name[i]);
-    code_it_fetch::joint_states_pos.push_back(msg->position[i]);
-  }
-}
-
 void locationCallback(
     const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg) {
   code_it_fetch::curr_pose = msg->pose.pose;
@@ -25,6 +18,21 @@ void locationCallback(
 void posesCallback(const map_annotator::PoseNames::ConstPtr& msg) {
   for (unsigned int i = 0; i < msg->names.size(); i++) {
     code_it_fetch::pose_names.push_back(msg->names[i]);
+  }
+}
+
+void jointCallback(const sensor_msgs::JointState::ConstPtr& msg) {
+  // updating info used from rostopic /joint_states
+
+  for (unsigned int i = 0; i < msg->name.size(); i++) {
+    if (i >= msg->position.size()) {
+      continue;
+    }
+    // joint_states_publisher will return 0 as a default value if there is no
+    // new data. we don't update our maps unless there is new (non-zero) data.
+    if (msg->position[i] != 0) {
+      code_it_fetch::positions[msg->name[i]] = msg->position[i];
+    }
   }
 }
 

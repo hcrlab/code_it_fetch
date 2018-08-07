@@ -1,6 +1,7 @@
 #ifndef _CODE_IT_FETCH_ROBOT_API_H_
 #define _CODE_IT_FETCH_ROBOT_API_H_
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -28,6 +29,7 @@
 #include "rapid_pbd_msgs/ExecuteProgramAction.h"
 #include "ros/ros.h"
 #include "std_msgs/Bool.h"
+using std::map;
 using std::string;
 using std::vector;
 
@@ -40,10 +42,9 @@ static const char CLOSE_GRIPPER[] = "Failed to close gripper.";
 static const char OPEN_GRIPPER[] = "Failed to open gripper.";
 }  // namespace errors
 
-vector<string> joint_states_names;
-vector<float> joint_states_pos;
 vector<string> pose_names;
 geometry_msgs::Pose curr_pose;
+map<string, float> positions;
 
 class RobotApi {
  public:
