@@ -379,8 +379,17 @@ void RobotApi::SlipGripper(const code_it_msgs::SlipGripperGoalConstPtr& goal) {
 
 void RobotApi::StartCheckingGripper(const code_it_msgs::StartCheckingGripperGoalConstPtr& goal){
   checkingIfSlipped = goal->startCheckingIfSlipped;
+  //if we are resetting the gripper sensor, also set gripperSlipped to false
+  if (checkingIfSlipped == false) {
+    gripperSlipped = false;
+    l_gripper_pos_old = 1;
+    l_gripper_vel_old = 1; 
+    r_gripper_pos_old = 1;
+    r_gripper_vel_old = 1;
+  }
+  code_it_msgs::StartCheckingGripperResult res;
+  start_checking_gripper_server_.setSucceeded(res);
 }
 
 
 }  // namespace code_it_fetch
-
