@@ -149,8 +149,9 @@ void RobotApi::DisplayMessage(
 void RobotApi::GetLocation(const code_it_msgs::GetLocationGoalConstPtr &goal) {
   code_it_msgs::GetLocationResult result;
 
-  for (unsigned int i = 0; i < 20; i++) {
-    string nextname = pose_names[i];
+  vector<string>::iterator it;
+  for (it = pose_names.begin(); it < pose_names.end(); it++) {
+    string nextname = *it;
     map_annotator::GetPoseGoal pose_goal;
     pose_goal.name = nextname;
     pose_client_->sendGoalAndWait(pose_goal);
