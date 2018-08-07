@@ -16,6 +16,7 @@
 #include "code_it_msgs/SetGripperAction.h"
 #include "code_it_msgs/SetTorsoAction.h"
 #include "code_it_msgs/SlipGripperAction.h" 
+#include "code_it_msgs/StartCheckingGripperAction.h"
 #include "control_msgs/FollowJointTrajectoryAction.h"
 #include "control_msgs/GripperCommandAction.h"
 #include "map_annotator/GoToLocationAction.h"
@@ -40,7 +41,7 @@ map<string, float> positions;
 map<string, float> velocities;
 
 //global variables for slipGripper
-bool checkingIfSlipped = true; //set to false after implementing the fronend block that changes this value 
+bool checkingIfSlipped = false; //set to false after implementing the fronend block that changes this value 
 bool gripperSlipped = false;
 float l_gripper_pos_old = 1; // all initialized to one because we want wasGrasping to be false in the first call to jointCallback
 float l_gripper_vel_old = 1; 
@@ -76,6 +77,7 @@ class RobotApi {
   float GetCurrentPos(const string joint_name);
   float GetCurrentVel(const string joint_name);
   void SlipGripper(const code_it_msgs::SlipGripperGoalConstPtr& goal);
+  void StartCheckingGripper(const code_it_msgs::StartCheckingGripperGoalConstPtr& goal);
 
  private:
   rapid::fetch::Fetch* const robot_;
@@ -102,6 +104,7 @@ class RobotApi {
   actionlib::SimpleActionServer<code_it_msgs::SetTorsoAction> set_torso_server_;
 
   actionlib::SimpleActionServer<code_it_msgs::SlipGripperAction> slip_gripper_server_;
+  actionlib::SimpleActionServer<code_it_msgs::StartCheckingGripperAction> start_checking_gripper_server_;
 };
 }  // namespace code_it_fetch
 #endif  // _CODE_IT_FETCH_ROBOT_API_H_

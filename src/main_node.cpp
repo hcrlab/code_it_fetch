@@ -27,7 +27,7 @@ void jointCallback(const sensor_msgs::JointState::ConstPtr& msg) {
   }
   
   //updating whether the gripper has slipped
-  if (code_it_fetch::checkingIfSlipped) {
+  if (code_it_fetch::checkingIfSlipped) { 
     float l_gripper_pos_new = code_it_fetch::positions["l_gripper_finger_joint"];
     float l_gripper_vel_new = code_it_fetch::velocities["l_gripper_finger_joint"];
 
