@@ -27,37 +27,34 @@ void jointCallback(const sensor_msgs::JointState::ConstPtr& msg) {
   }
   
   //updating whether the gripper has slipped
-  if (code_it_fetch::checkingIfSlipped) { 
-    float l_gripper_pos_new = code_it_fetch::positions["l_gripper_finger_joint"];
-    float l_gripper_vel_new = code_it_fetch::velocities["l_gripper_finger_joint"];
+  float l_gripper_pos_new = code_it_fetch::positions["l_gripper_finger_joint"];
+  float l_gripper_vel_new = code_it_fetch::velocities["l_gripper_finger_joint"];
 
-    float r_gripper_pos_new = code_it_fetch::positions["r_gripper_finger_joint"];
-    float r_gripper_vel_new = code_it_fetch::velocities["r_gripper_finger_joint"];
+  float r_gripper_pos_new = code_it_fetch::positions["r_gripper_finger_joint"];
+  float r_gripper_vel_new = code_it_fetch::velocities["r_gripper_finger_joint"];
     
-    //wasGrasping is true if the velocities of the gripper fingers are between GRIPPER_VEL_TOLERANCE and -1 * GRIPPER_VEL_TOLERANCE 
-    bool wasGrasping = (code_it_fetch::l_gripper_vel_old <= code_it_fetch::GRIPPER_VEL_TOLERANCE) && (code_it_fetch::l_gripper_vel_old >= -1 * code_it_fetch::GRIPPER_VEL_TOLERANCE);
-       // && (code_it_fetch::r_gripper_vel_old <= code_it_fetch::GRIPPER_VEL_TOLERANCE) && (code_it_fetch::r_gripper_vel_old >= -1 * code_it_fetch::GRIPPER_VEL_TOLERANCE);
+  //wasGrasping is true if the velocities of the gripper fingers are between GRIPPER_VEL_TOLERANCE and -1 * GRIPPER_VEL_TOLERANCE 
+  bool wasGrasping = (code_it_fetch::l_gripper_vel_old <= code_it_fetch::GRIPPER_VEL_TOLERANCE) && (code_it_fetch::l_gripper_vel_old >= -1 * code_it_fetch::GRIPPER_VEL_TOLERANCE);
+     // && (code_it_fetch::r_gripper_vel_old <= code_it_fetch::GRIPPER_VEL_TOLERANCE) && (code_it_fetch::r_gripper_vel_old >= -1 * code_it_fetch::GRIPPER_VEL_TOLERANCE);
   
-    //true if the gripper was open in the last callback
-    bool wasOpen = code_it_fetch::l_gripper_pos_old >= 0.047; 
+  //true if the gripper was open in the last callback
+  bool wasOpen = code_it_fetch::l_gripper_pos_old >= 0.047; 
      
-    //true if gripper is closed in current callback
-    bool isClosed = l_gripper_pos_new <= 0.001;
+  //true if gripper is closed in current callback
+  bool isClosed = l_gripper_pos_new <= 0.001;
 
-    //closing is positive velocity
-    bool nowClosing = (l_gripper_vel_new >= (code_it_fetch::GRIPPER_VEL_TOLERANCE)); // && (r_gripper_vel_new < (-1 * code_it_fetch::GRIPPER_VEL_TOLERANCE));
+  //closing is positive velocity
+  bool nowClosing = (l_gripper_vel_new >= (code_it_fetch::GRIPPER_VEL_TOLERANCE)); // && (r_gripper_vel_new < (-1 * code_it_fetch::GRIPPER_VEL_TOLERANCE));
      
-     if (wasGrasping && nowClosing && !wasOpen && !isClosed) {
-     	code_it_fetch::gripperSlipped = true; //this value will be true until the gripper sent another goal (to open or close)
-     }
-     //update old velocity and position values
-     code_it_fetch::l_gripper_vel_old = l_gripper_vel_new;
-     code_it_fetch::r_gripper_vel_old = r_gripper_vel_new;
+   if (wasGrasping && nowClosing && !wasOpen && !isClosed) {
+   	code_it_fetch::gripperSlipped = true; //this value will be true until the gripper sent another goal (to open or close)
+   }
+   //update old velocity and position values
+   code_it_fetch::l_gripper_vel_old = l_gripper_vel_new;
+   code_it_fetch::r_gripper_vel_old = r_gripper_vel_new;
      
-     code_it_fetch::l_gripper_pos_old = l_gripper_pos_new;
-     code_it_fetch::r_gripper_pos_old = r_gripper_pos_new;
-     //put in a check for position so that when it closes, we dont get true.
-  }
+   code_it_fetch::l_gripper_pos_old = l_gripper_pos_new;
+   code_it_fetch::r_gripper_pos_old = r_gripper_pos_new;
 }
 
 int main(int argc, char** argv) {

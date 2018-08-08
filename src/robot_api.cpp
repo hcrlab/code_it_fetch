@@ -65,8 +65,8 @@ RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
                         boost::bind(&RobotApi::SetTorso, this, _1), false),    
       slip_gripper_server_("/code_it/api/slip_gripper",
                           boost::bind(&RobotApi::SlipGripper, this, _1), false),
-      start_checking_gripper_server_("/code_it/api/start_checking_gripper", 
-		      boost::bind(&RobotApi::StartCheckingGripper, this, _1), false){
+      reset_sensors_server_("/code_it/api/reset_sensors", 
+		      boost::bind(&RobotApi::ResetSensors, this, _1), false){
   ask_mc_server_.start();
   display_message_server_.start();
   go_to_server_.start();
@@ -75,7 +75,7 @@ RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
   set_gripper_server_.start();
   set_torso_server_.start();
   slip_gripper_server_.start();
-  start_checking_gripper_server_.start();
+  reset_sensors_server_.start();
 }
 
 void RobotApi::AskMC(const code_it_msgs::AskMultipleChoiceGoalConstPtr &goal) {
@@ -377,18 +377,16 @@ void RobotApi::SlipGripper(const code_it_msgs::SlipGripperGoalConstPtr& goal) {
   return;
 }
 
-void RobotApi::StartCheckingGripper(const code_it_msgs::StartCheckingGripperGoalConstPtr& goal){
-  checkingIfSlipped = goal->startCheckingIfSlipped;
-  //if we are resetting the gripper sensor, also set gripperSlipped to false
-  if (checkingIfSlipped == false) {
-    gripperSlipped = false;
-    l_gripper_pos_old = 1;
-    l_gripper_vel_old = 1; 
-    r_gripper_pos_old = 1;
-    r_gripper_vel_old = 1;
-  }
-  code_it_msgs::StartCheckingGripperResult res;
-  start_checking_gripper_server_.setSucceeded(res);
+void RobotApi::ResetSensors(const code_it_msgs::EmptyGoalConstPtr& goal){
+  
+  gripperSlipped = false;
+  l_gripper_pos_old = 1;
+  l_gripper_vel_old = 1; 
+  r_gripper_pos_old = 1;
+  r_gripper_vel_old = 1;
+  
+  code_it_msgs::EmptyResult res;
+  reset_sensors_server_.setSucceeded(res);
 }
 
 
