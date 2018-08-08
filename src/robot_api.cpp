@@ -191,11 +191,6 @@ void RobotApi::GoTo(const code_it_msgs::GoToGoalConstPtr &goal) {
     go_to_server_.setAborted();
     return;
   }
-
-  map_annotator::GoToLocationResult::ConstPtr location_result =
-      nav_client_->getResult();
-  code_it_msgs::GoToResult result;
-  result.error = location_result->error;
   go_to_server_.setSucceeded(result);
 }
 
@@ -272,11 +267,6 @@ void RobotApi::RunPbdProgram(
     rapid_pbd_server_.setAborted(result);
     return;
   }
-
-  rapid_pbd_msgs::ExecuteProgramResult::ConstPtr rapid_pbd_result =
-      pbd_client_->getResult();
-  code_it_msgs::RunPbdActionResult result;
-  result.error = rapid_pbd_result->error;
   rapid_pbd_server_.setSucceeded(result);
 }
 
