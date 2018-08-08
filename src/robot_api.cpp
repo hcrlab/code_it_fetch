@@ -62,7 +62,11 @@ RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
       set_gripper_server_("/code_it/api/set_gripper",
                           boost::bind(&RobotApi::SetGripper, this, _1), false),
       set_torso_server_("/code_it/api/set_torso",
-                        boost::bind(&RobotApi::SetTorso, this, _1), false) {
+                        boost::bind(&RobotApi::SetTorso, this, _1), false),    
+      slip_gripper_server_("/code_it/api/slip_gripper",
+                          boost::bind(&RobotApi::SlipGripper, this, _1), false),
+      reset_sensors_server_("/code_it/api/reset_sensors", 
+		      boost::bind(&RobotApi::ResetSensors, this, _1), false){
   ask_mc_server_.start();
   display_message_server_.start();
   go_to_server_.start();
@@ -70,6 +74,8 @@ RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
   rapid_pbd_server_.start();
   set_gripper_server_.start();
   set_torso_server_.start();
+  slip_gripper_server_.start();
+  reset_sensors_server_.start();
 }
 
 void RobotApi::AskMC(const code_it_msgs::AskMultipleChoiceGoalConstPtr &goal) {
@@ -146,23 +152,25 @@ void RobotApi::GoTo(const code_it_msgs::GoToGoalConstPtr &goal) {
     if (go_to_server_.isPreemptRequested() || !ros::ok()) {
       nav_client_->cancelAllGoals();
       go_to_server_.setPreempted();
+      return;
     }
     ros::spinOnce();
   }
-  map_annotator::GoToLocationResult::ConstPtr location_result =
-      nav_client_->getResult();
-  code_it_msgs::GoToResult result;
-  result.error = location_result->error;
   if (nav_client_->getState() == actionlib::SimpleClientGoalState::PREEMPTED) {
     nav_client_->cancelAllGoals();
-    go_to_server_.setPreempted(result);
+    go_to_server_.setPreempted();
     return;
   } else if (nav_client_->getState() ==
              actionlib::SimpleClientGoalState::ABORTED) {
     nav_client_->cancelAllGoals();
-    go_to_server_.setAborted(result);
+    go_to_server_.setAborted();
     return;
   }
+
+  map_annotator::GoToLocationResult::ConstPtr location_result =
+      nav_client_->getResult();
+  code_it_msgs::GoToResult result;
+  result.error = location_result->error;
   go_to_server_.setSucceeded(result);
 }
 
@@ -222,23 +230,25 @@ void RobotApi::RunPbdProgram(
     if (rapid_pbd_server_.isPreemptRequested() || !ros::ok()) {
       pbd_client_->cancelAllGoals();
       rapid_pbd_server_.setPreempted();
+      return;
     }
     ros::spinOnce();
   }
-  rapid_pbd_msgs::ExecuteProgramResult::ConstPtr rapid_pbd_result =
-      pbd_client_->getResult();
-  code_it_msgs::RunPbdActionResult result;
-  result.error = rapid_pbd_result->error;
   if (pbd_client_->getState() == actionlib::SimpleClientGoalState::PREEMPTED) {
     pbd_client_->cancelAllGoals();
-    rapid_pbd_server_.setPreempted(result);
+    rapid_pbd_server_.setPreempted();
     return;
   } else if (pbd_client_->getState() ==
              actionlib::SimpleClientGoalState::ABORTED) {
     torso_client_->cancelAllGoals();
-    rapid_pbd_server_.setAborted(result);
+    rapid_pbd_server_.setAborted();
     return;
   }
+
+  rapid_pbd_msgs::ExecuteProgramResult::ConstPtr rapid_pbd_result =
+      pbd_client_->getResult();
+  code_it_msgs::RunPbdActionResult result;
+  result.error = rapid_pbd_result->error;
   rapid_pbd_server_.setSucceeded(result);
 }
 
@@ -253,6 +263,9 @@ void RobotApi::SetGripper(const code_it_msgs::SetGripperGoalConstPtr &goal) {
   float OPENED_POS = 0.10;
   int MIN_EFFORT = 35;
   int MAX_EFFORT = 100;
+  
+  //reset whether the gripper has slipped (part of slipGripper code)
+  gripperSlipped = false;
 
   int action = goal->action;
 
@@ -346,14 +359,36 @@ void RobotApi::HandleProgramStopped(const std_msgs::Bool &msg) {
 }
 
 float RobotApi::GetCurrentPos(const string joint_name) {
-  float pos = 0;
-  for (unsigned int i = 0; i < 30; i++) {  // initialized to 30 in .h file
-    if (joint_name.compare(joint_states_names[i]) == 0) {
-      pos = joint_states_pos[i];
-    }
-  }
+  float pos = positions[joint_name]; //returns 0 if joint name doesn't exist in positions, and inserts a new key joint_name into the map (with value 0)
   return pos;
 }
+
+float RobotApi::GetCurrentVel(const string joint_name) {
+  //float vel = 0;
+  float vel = velocities[joint_name]; //returns 0 if joint name doesn't exist in velocities, and inserts a new key joint_name into the map (with value 0)
+  return vel;
+}
+
+void RobotApi::SlipGripper(const code_it_msgs::SlipGripperGoalConstPtr& goal) {
+ 
+  code_it_msgs::SlipGripperResult res;
+  res.slipped = gripperSlipped;
+  slip_gripper_server_.setSucceeded(res);
+  return;
+}
+
+void RobotApi::ResetSensors(const code_it_msgs::EmptyGoalConstPtr& goal){
+  
+  gripperSlipped = false;
+  l_gripper_pos_old = 1;
+  l_gripper_vel_old = 1; 
+  r_gripper_pos_old = 1;
+  r_gripper_vel_old = 1;
+  
+  code_it_msgs::EmptyResult res;
+  reset_sensors_server_.setSucceeded(res);
+}
+
 
 }  // namespace code_it_fetch
 

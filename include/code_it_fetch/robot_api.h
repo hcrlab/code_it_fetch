@@ -2,6 +2,7 @@
 #define _CODE_IT_FETCH_ROBOT_API_H_
 
 #include <string>
+#include <map>
 
 #include "actionlib/client/simple_action_client.h"
 #include "actionlib/server/simple_action_server.h"
@@ -14,6 +15,8 @@
 #include "code_it_msgs/Say.h"
 #include "code_it_msgs/SetGripperAction.h"
 #include "code_it_msgs/SetTorsoAction.h"
+#include "code_it_msgs/SlipGripperAction.h" 
+#include "code_it_msgs/EmptyAction.h"
 #include "control_msgs/FollowJointTrajectoryAction.h"
 #include "control_msgs/GripperCommandAction.h"
 #include "map_annotator/GoToLocationAction.h"
@@ -23,6 +26,7 @@
 #include "std_msgs/Bool.h"
 
 using std::string;
+using std::map;
 
 namespace code_it_fetch {
 namespace errors {
@@ -33,8 +37,17 @@ static const char CLOSE_GRIPPER[] = "Failed to close gripper.";
 static const char OPEN_GRIPPER[] = "Failed to open gripper.";
 }  // namespace errors
 
-string joint_states_names[30] = {};
-float joint_states_pos[30] = {};
+map<string, float> positions;
+map<string, float> velocities;
+
+//global variables for slipGripper
+
+bool gripperSlipped = false;
+float l_gripper_pos_old = 1; // all initialized to one because we want wasGrasping to be false in the first call to jointCallback
+float l_gripper_vel_old = 1; 
+float r_gripper_pos_old = 1;
+float r_gripper_vel_old = 1;
+const float GRIPPER_VEL_TOLERANCE = 0.001; // 10^-3 -- we observed that gripper motion while still was around 10^-7 (note that floats have ~7 decimal precision)
 
 class RobotApi {
  public:
@@ -62,6 +75,9 @@ class RobotApi {
   void SetTorso(const code_it_msgs::SetTorsoGoalConstPtr& goal);
   void HandleProgramStopped(const std_msgs::Bool& msg);
   float GetCurrentPos(const string joint_name);
+  float GetCurrentVel(const string joint_name);
+  void SlipGripper(const code_it_msgs::SlipGripperGoalConstPtr& goal);
+  void ResetSensors(const code_it_msgs::EmptyGoalConstPtr& goal);
 
  private:
   rapid::fetch::Fetch* const robot_;
@@ -86,6 +102,9 @@ class RobotApi {
   actionlib::SimpleActionServer<code_it_msgs::SetGripperAction>
       set_gripper_server_;
   actionlib::SimpleActionServer<code_it_msgs::SetTorsoAction> set_torso_server_;
+
+  actionlib::SimpleActionServer<code_it_msgs::SlipGripperAction> slip_gripper_server_;
+  actionlib::SimpleActionServer<code_it_msgs::EmptyAction> reset_sensors_server_;
 };
 }  // namespace code_it_fetch
 #endif  // _CODE_IT_FETCH_ROBOT_API_H_
