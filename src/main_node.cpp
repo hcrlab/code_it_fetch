@@ -10,22 +10,63 @@
 
 using code_it_fetch::RobotApi;
 
-void jointCallback(const sensor_msgs::JointState::ConstPtr& msg) {
-  for (unsigned int i = 0; i < msg->name.size(); i++) {
-    code_it_fetch::joint_states_names.push_back(msg->name[i]);
-    code_it_fetch::joint_states_pos.push_back(msg->position[i]);
-  }
-}
-
 void locationCallback(
     const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg) {
-  code_it_fetch::curr_pose = msg->pose.pose;
+  code_it_fetch::curr_location = msg->pose.pose;
 }
 
 void posesCallback(const map_annotator::PoseNames::ConstPtr& msg) {
   for (unsigned int i = 0; i < msg->names.size(); i++) {
-    code_it_fetch::pose_names.push_back(msg->names[i]);
+    code_it_fetch::location_names.insert(msg->names[i]);
   }
+}
+
+void jointCallback(const sensor_msgs::JointState::ConstPtr& msg) {
+  //updating info used from rostopic /joint_states
+
+  for (unsigned int i = 0; i < msg->name.size(); i++) {
+    if (i >= msg->position.size()) {
+      continue;
+    }
+    //joint_states_publisher will return 0 as a default value if there is no new data. we don't update our maps unless there is new (non-zero) data.  
+    if (msg->position[i] != 0) {
+       code_it_fetch::positions[msg->name[i]] =  msg->position[i];
+    }
+
+    if (msg->velocity[i] != 0) {
+       code_it_fetch::velocities[msg->name[i]] = msg->velocity[i];
+    }
+  }
+  
+  //updating whether the gripper has slipped
+  float l_gripper_pos_new = code_it_fetch::positions["l_gripper_finger_joint"];
+  float l_gripper_vel_new = code_it_fetch::velocities["l_gripper_finger_joint"];
+
+  float r_gripper_pos_new = code_it_fetch::positions["r_gripper_finger_joint"];
+  float r_gripper_vel_new = code_it_fetch::velocities["r_gripper_finger_joint"];
+    
+  //wasGrasping is true if the velocities of the gripper fingers are between GRIPPER_VEL_TOLERANCE and -1 * GRIPPER_VEL_TOLERANCE 
+  bool wasGrasping = (code_it_fetch::l_gripper_vel_old <= code_it_fetch::GRIPPER_VEL_TOLERANCE) && (code_it_fetch::l_gripper_vel_old >= -1 * code_it_fetch::GRIPPER_VEL_TOLERANCE);
+     // && (code_it_fetch::r_gripper_vel_old <= code_it_fetch::GRIPPER_VEL_TOLERANCE) && (code_it_fetch::r_gripper_vel_old >= -1 * code_it_fetch::GRIPPER_VEL_TOLERANCE);
+  
+  //true if the gripper was open in the last callback
+  bool wasOpen = code_it_fetch::l_gripper_pos_old >= 0.047; 
+     
+  //true if gripper is closed in current callback
+  bool isClosed = l_gripper_pos_new <= 0.001;
+
+  //closing is positive velocity
+  bool nowClosing = (l_gripper_vel_new >= (code_it_fetch::GRIPPER_VEL_TOLERANCE)); // && (r_gripper_vel_new < (-1 * code_it_fetch::GRIPPER_VEL_TOLERANCE));
+     
+   if (wasGrasping && nowClosing && !wasOpen && !isClosed) {
+   	code_it_fetch::gripperSlipped = true; //this value will be true until the gripper sent another goal (to open or close)
+   }
+   //update old velocity and position values
+   code_it_fetch::l_gripper_vel_old = l_gripper_vel_new;
+   code_it_fetch::r_gripper_vel_old = r_gripper_vel_new;
+     
+   code_it_fetch::l_gripper_pos_old = l_gripper_pos_new;
+   code_it_fetch::r_gripper_pos_old = r_gripper_pos_new;
 }
 
 int main(int argc, char** argv) {
@@ -95,3 +136,4 @@ int main(int argc, char** argv) {
   delete robot;
   return 0;
 }
+
