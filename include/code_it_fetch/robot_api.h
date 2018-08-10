@@ -23,7 +23,6 @@
 #include "control_msgs/FollowJointTrajectoryAction.h"
 #include "control_msgs/GripperCommandAction.h"
 #include "geometry_msgs/Pose.h"
-#include "location_server/GetPoseByName.h"
 #include "map_annotator/GetPoseAction.h"
 #include "map_annotator/GoToLocationAction.h"
 #include "map_annotator/PoseNames.h"
