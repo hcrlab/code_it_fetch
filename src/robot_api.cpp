@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <string>
-#include <vector>
+#include <set>
 
 #include "actionlib/client/simple_action_client.h"
 #include "actionlib/client/simple_client_goal_state.h"
@@ -23,10 +23,12 @@
 
 using std::abs;
 using std::string;
+using std::set;
 
 typedef actionlib::SimpleActionClient<blinky::FaceAction> BlinkyClient;
 typedef actionlib::SimpleActionClient<map_annotator::GoToLocationAction>
     NavClient;
+typedef actionlib::SimpleActionClient<map_annotator::GetPoseAction> PoseClient;
 typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
     HeadClient;
 typedef actionlib::SimpleActionClient<rapid_pbd_msgs::ExecuteProgramAction>
@@ -38,12 +40,13 @@ typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
 
 namespace code_it_fetch {
 RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
-                   NavClient *nav_client, HeadClient *head_client,
-                   PbdClient *pbd_client, GripperClient *gripper_client,
-                   TorsoClient *torso_client)
+                   NavClient *nav_client, PoseClient *pose_client,
+                   HeadClient *head_client, PbdClient *pbd_client,
+                   GripperClient *gripper_client, TorsoClient *torso_client)
     : robot_(robot),
       blinky_client_(blinky_client),
       nav_client_(nav_client),
+      pose_client_(pose_client),
       head_client_(head_client),
       pbd_client_(pbd_client),
       gripper_client_(gripper_client),
@@ -53,6 +56,8 @@ RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
       display_message_server_("/code_it/api/display_message",
                               boost::bind(&RobotApi::DisplayMessage, this, _1),
                               false),
+      get_loc_server_("/code_it/api/get_location",
+                      boost::bind(&RobotApi::GetLocation, this, _1), false),
       get_pos_server_("/code_it/api/get_position",
                       boost::bind(&RobotApi::GetPosition, this, _1), false),
       go_to_server_("/code_it/api/go_to",
@@ -68,9 +73,10 @@ RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
       slip_gripper_server_("/code_it/api/slip_gripper",
                           boost::bind(&RobotApi::SlipGripper, this, _1), false),
       reset_sensors_server_("/code_it/api/reset_sensors", 
-		      boost::bind(&RobotApi::ResetSensors, this, _1), false){
+		      boost::bind(&RobotApi::ResetSensors, this, _1), false) {
   ask_mc_server_.start();
   display_message_server_.start();
+  get_loc_server_.start();
   get_pos_server_.start();
   go_to_server_.start();
   move_head_server_.start();
@@ -147,22 +153,69 @@ void RobotApi::DisplayMessage(
   display_message_server_.setSucceeded(result);
 }
 
+void RobotApi::GetLocation(const code_it_msgs::GetLocationGoalConstPtr &goal) {
+  code_it_msgs::GetLocationResult result;
+
+  set<string>::iterator it;
+  for (it = location_names.begin(); it != location_names.end(); it++) {
+    string nextname = *it;
+    map_annotator::GetPoseGoal pose_goal;
+    pose_goal.name = nextname;
+    pose_client_->sendGoalAndWait(pose_goal);
+    map_annotator::GetPoseResult::ConstPtr pose_result =
+        pose_client_->getResult();
+    if (pose_result->error.compare("") == 0) {
+      geometry_msgs::Pose nextpose = pose_result->pose;
+      if (CompareLocation(nextpose, curr_location)) {
+        result.name = nextname;
+        get_loc_server_.setSucceeded(result);
+        return;
+      }
+    }
+  }
+  result.name = "Not a named location";
+  get_loc_server_.setSucceeded(result);
+}
+
+bool RobotApi::CompareLocation(const geometry_msgs::Pose &pose1,
+                               const geometry_msgs::Pose &pose2) {
+  float pos_tol = 0.2;
+  float ori_tol = 0.3;
+  if (abs(pose1.position.x - pose2.position.x) > pos_tol) {
+    return false;
+  } else if (abs(pose1.position.y - pose2.position.y) > pos_tol) {
+    return false;
+  } else if (abs(pose1.position.z - pose2.position.z) > pos_tol) {
+    return false;
+  } else if (abs(pose1.orientation.x - pose2.orientation.x) > ori_tol) {
+    return false;
+  } else if (abs(pose1.orientation.y - pose2.orientation.y) > ori_tol) {
+    return false;
+  } else if (abs(pose1.orientation.z - pose2.orientation.z) > ori_tol) {
+    return false;
+  } else if (abs(pose1.orientation.w - pose2.orientation.w) > ori_tol) {
+    return false;
+  }
+  return true;
+}
+
 void RobotApi::GetPosition(const code_it_msgs::GetPositionGoalConstPtr &goal) {
   string resource = goal->name;
   code_it_msgs::GetPositionResult result;
+  float value = 0;
   if (resource.compare("TORSO") == 0) {
-    result.position = floor(GetCurrentPos("torso_lift_joint") * 1000) / 1000;
+    value = GetCurrentPos("torso_lift_joint");
   } else if (resource.compare("HEADPAN") == 0) {
-    float pan = GetCurrentPos("head_pan_joint");	  
-    result.position = floor(((pan * 180.0) / M_PI) * 1000) / 1000; 
+    float pan = GetCurrentPos("head_pan_joint");
+    value = ((pan * 180.0) / M_PI);
   } else if (resource.compare("HEADTILT") == 0) {
-    float tilt = GetCurrentPos("head_tilt_joint");	  
-    result.position = floor(((tilt * 180.0) / M_PI) * 1000) / 1000; 
+    float tilt = GetCurrentPos("head_tilt_joint");
+    value = ((tilt * 180.0) / M_PI);
   } else if (resource.compare("GRIPPER") == 0) {
-    float gap = GetCurrentPos("l_gripper_finger_joint") +
-                GetCurrentPos("r_gripper_finger_joint");
-    result.position = floor(gap * 1000) / 1000;
+    value = GetCurrentPos("l_gripper_finger_joint") +
+            GetCurrentPos("r_gripper_finger_joint");
   }
+  result.position = floor(value * 1000) / 1000;
   get_pos_server_.setSucceeded(result);
 }
 
@@ -183,12 +236,12 @@ void RobotApi::GoTo(const code_it_msgs::GoToGoalConstPtr &goal) {
   if (nav_client_->getState() == actionlib::SimpleClientGoalState::PREEMPTED ||
       go_to_server_.isPreemptRequested()) {
     nav_client_->cancelAllGoals();
-    go_to_server_.setPreempted();
+    go_to_server_.setPreempted(result);
     return;
   } else if (nav_client_->getState() ==
              actionlib::SimpleClientGoalState::ABORTED) {
     nav_client_->cancelAllGoals();
-    go_to_server_.setAborted();
+    go_to_server_.setAborted(result);
     return;
   }
   go_to_server_.setSucceeded(result);
@@ -259,7 +312,7 @@ void RobotApi::RunPbdProgram(
   if (pbd_client_->getState() == actionlib::SimpleClientGoalState::PREEMPTED ||
       rapid_pbd_server_.isPreemptRequested()) {
     pbd_client_->cancelAllGoals();
-    rapid_pbd_server_.setPreempted();
+    rapid_pbd_server_.setPreempted(result);
     return;
   } else if (pbd_client_->getState() ==
              actionlib::SimpleClientGoalState::ABORTED) {
@@ -281,9 +334,6 @@ void RobotApi::SetGripper(const code_it_msgs::SetGripperGoalConstPtr &goal) {
   float OPENED_POS = 0.10;
   int MIN_EFFORT = 35;
   int MAX_EFFORT = 100;
-  
-  //reset whether the gripper has slipped (part of slipGripper code)
-  gripperSlipped = false;
 
   int action = goal->action;
 
@@ -377,7 +427,9 @@ void RobotApi::HandleProgramStopped(const std_msgs::Bool &msg) {
 }
 
 float RobotApi::GetCurrentPos(const string joint_name) {
-  float pos = positions[joint_name]; //returns 0 if joint name doesn't exist in positions, and inserts a new key joint_name into the map (with value 0)
+  float pos = positions[joint_name];  // returns 0 if joint name doesn't exist
+                                      // in positions, and inserts a new key
+                                      // joint_name into the map (with value 0)
   return pos;
 }
 
@@ -406,7 +458,6 @@ void RobotApi::ResetSensors(const code_it_msgs::EmptyGoalConstPtr& goal){
   code_it_msgs::EmptyResult res;
   reset_sensors_server_.setSucceeded(res);
 }
-
 
 }  // namespace code_it_fetch
 
