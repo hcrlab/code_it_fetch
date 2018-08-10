@@ -3,26 +3,35 @@
 #include "actionlib/client/simple_action_client.h"
 #include "blinky/FaceAction.h"
 #include "code_it_fetch/robot_api.h"
+#include "geometry_msgs/PoseWithCovarianceStamped.h"
 #include "map_annotator/GoToLocationAction.h"
 #include "rapid_fetch/fetch.h"
 #include "rapid_pbd_msgs/ExecuteProgramAction.h"
 
 using code_it_fetch::RobotApi;
 
+void locationCallback(
+    const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg) {
+  code_it_fetch::curr_location = msg->pose.pose;
+}
+
+void posesCallback(const map_annotator::PoseNames::ConstPtr& msg) {
+  for (unsigned int i = 0; i < msg->names.size(); i++) {
+    code_it_fetch::location_names.insert(msg->names[i]);
+  }
+}
+
 void jointCallback(const sensor_msgs::JointState::ConstPtr& msg) {
-  //updating info used from rostopic /joint_states
+  // updating info used from rostopic /joint_states
 
   for (unsigned int i = 0; i < msg->name.size(); i++) {
     if (i >= msg->position.size()) {
       continue;
     }
-    //joint_states_publisher will return 0 as a default value if there is no new data. we don't update our maps unless there is new (non-zero) data.  
+    // joint_states_publisher will return 0 as a default value if there is no
+    // new data. we don't update our maps unless there is new (non-zero) data.
     if (msg->position[i] != 0) {
-       code_it_fetch::positions[msg->name[i]] =  msg->position[i];
-    }
-
-    if (msg->velocity[i] != 0) {
-       code_it_fetch::velocities[msg->name[i]] = msg->velocity[i];
+      code_it_fetch::positions[msg->name[i]] = msg->position[i];
     }
   }
   
@@ -62,6 +71,10 @@ int main(int argc, char** argv) {
   ros::NodeHandle nh;
   ros::AsyncSpinner spinner(4);
   ros::Subscriber joint_sub = nh.subscribe("/joint_states", 10, jointCallback);
+  ros::Subscriber location_sub =
+      nh.subscribe("/amcl_pose", 10, locationCallback);
+  ros::Subscriber poses_sub =
+      nh.subscribe("/map_annotator/pose_names", 10, posesCallback);
   spinner.start();
 
   rapid::fetch::Fetch* robot = rapid::fetch::BuildReal();
@@ -75,6 +88,12 @@ int main(int argc, char** argv) {
   actionlib::SimpleActionClient<map_annotator::GoToLocationAction> nav_client(
       "/map_annotator/go_to_location", true);
   if (!nav_client.waitForServer(ros::Duration(5.0))) {
+    ROS_ERROR("Map annotator server not available!");
+  }
+
+  actionlib::SimpleActionClient<map_annotator::GetPoseAction> pose_client(
+      "/map_annotator/get_pose", true);
+  if (!pose_client.waitForServer(ros::Duration(5.0))) {
     ROS_ERROR("Map annotator server not available!");
   }
 
@@ -102,9 +121,8 @@ int main(int argc, char** argv) {
     ROS_WARN("Waiting for torso server...");
   }
 
-
-  RobotApi api(robot, &blinky_client, &nav_client, &head_client, &pbd_client,
-               &gripper_client, &torso_client);
+  RobotApi api(robot, &blinky_client, &nav_client, &pose_client, &head_client,
+               &pbd_client, &gripper_client, &torso_client);
 
   ros::ServiceServer say_srv =
       nh.advertiseService("code_it/api/say", &RobotApi::Say, &api);
@@ -115,4 +133,3 @@ int main(int argc, char** argv) {
   delete robot;
   return 0;
 }
-
