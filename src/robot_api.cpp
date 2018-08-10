@@ -73,7 +73,7 @@ RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
       slip_gripper_server_("/code_it/api/slip_gripper",
                           boost::bind(&RobotApi::SlipGripper, this, _1), false),
       reset_sensors_server_("/code_it/api/reset_sensors", 
-		      boost::bind(&RobotApi::ResetSensors, this, _1), false){
+		      boost::bind(&RobotApi::ResetSensors, this, _1), false) {
   ask_mc_server_.start();
   display_message_server_.start();
   get_loc_server_.start();
