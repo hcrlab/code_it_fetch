@@ -236,12 +236,12 @@ void RobotApi::GoTo(const code_it_msgs::GoToGoalConstPtr &goal) {
   if (nav_client_->getState() == actionlib::SimpleClientGoalState::PREEMPTED ||
       go_to_server_.isPreemptRequested()) {
     nav_client_->cancelAllGoals();
-    go_to_server_.setPreempted();
+    go_to_server_.setPreempted(result);
     return;
   } else if (nav_client_->getState() ==
              actionlib::SimpleClientGoalState::ABORTED) {
     nav_client_->cancelAllGoals();
-    go_to_server_.setAborted();
+    go_to_server_.setAborted(result);
     return;
   }
   go_to_server_.setSucceeded(result);
@@ -312,7 +312,7 @@ void RobotApi::RunPbdProgram(
   if (pbd_client_->getState() == actionlib::SimpleClientGoalState::PREEMPTED ||
       rapid_pbd_server_.isPreemptRequested()) {
     pbd_client_->cancelAllGoals();
-    rapid_pbd_server_.setPreempted();
+    rapid_pbd_server_.setPreempted(result);
     return;
   } else if (pbd_client_->getState() ==
              actionlib::SimpleClientGoalState::ABORTED) {
@@ -334,9 +334,6 @@ void RobotApi::SetGripper(const code_it_msgs::SetGripperGoalConstPtr &goal) {
   float OPENED_POS = 0.10;
   int MIN_EFFORT = 35;
   int MAX_EFFORT = 100;
-  
-  //reset whether the gripper has slipped (part of slipGripper code)
-  gripperSlipped = false;
 
   int action = goal->action;
 
@@ -430,7 +427,9 @@ void RobotApi::HandleProgramStopped(const std_msgs::Bool &msg) {
 }
 
 float RobotApi::GetCurrentPos(const string joint_name) {
-  float pos = positions[joint_name]; //returns 0 if joint name doesn't exist in positions, and inserts a new key joint_name into the map (with value 0)
+  float pos = positions[joint_name];  // returns 0 if joint name doesn't exist
+                                      // in positions, and inserts a new key
+                                      // joint_name into the map (with value 0)
   return pos;
 }
 
@@ -459,7 +458,6 @@ void RobotApi::ResetSensors(const code_it_msgs::EmptyGoalConstPtr& goal){
   code_it_msgs::EmptyResult res;
   reset_sensors_server_.setSucceeded(res);
 }
-
 
 }  // namespace code_it_fetch
 

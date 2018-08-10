@@ -22,19 +22,16 @@ void posesCallback(const map_annotator::PoseNames::ConstPtr& msg) {
 }
 
 void jointCallback(const sensor_msgs::JointState::ConstPtr& msg) {
-  //updating info used from rostopic /joint_states
+  // updating info used from rostopic /joint_states
 
   for (unsigned int i = 0; i < msg->name.size(); i++) {
     if (i >= msg->position.size()) {
       continue;
     }
-    //joint_states_publisher will return 0 as a default value if there is no new data. we don't update our maps unless there is new (non-zero) data.  
+    // joint_states_publisher will return 0 as a default value if there is no
+    // new data. we don't update our maps unless there is new (non-zero) data.
     if (msg->position[i] != 0) {
-       code_it_fetch::positions[msg->name[i]] =  msg->position[i];
-    }
-
-    if (msg->velocity[i] != 0) {
-       code_it_fetch::velocities[msg->name[i]] = msg->velocity[i];
+      code_it_fetch::positions[msg->name[i]] = msg->position[i];
     }
   }
   
@@ -136,4 +133,3 @@ int main(int argc, char** argv) {
   delete robot;
   return 0;
 }
-

@@ -1,8 +1,8 @@
 #ifndef _CODE_IT_FETCH_ROBOT_API_H_
 #define _CODE_IT_FETCH_ROBOT_API_H_
 
-#include <string>
 #include <map>
+#include <string>
 #include <set>
 
 #include "actionlib/client/simple_action_client.h"
@@ -31,8 +31,8 @@
 #include "rapid_pbd_msgs/ExecuteProgramAction.h"
 #include "ros/ros.h"
 #include "std_msgs/Bool.h"
-using std::string;
 using std::map;
+using std::string;
 using std::set;
 
 namespace code_it_fetch {
@@ -121,10 +121,8 @@ class RobotApi {
   actionlib::SimpleActionServer<code_it_msgs::SetGripperAction>
       set_gripper_server_;
   actionlib::SimpleActionServer<code_it_msgs::SetTorsoAction> set_torso_server_;
-
   actionlib::SimpleActionServer<code_it_msgs::SlipGripperAction> slip_gripper_server_;
   actionlib::SimpleActionServer<code_it_msgs::EmptyAction> reset_sensors_server_;
 };
 }  // namespace code_it_fetch
 #endif  // _CODE_IT_FETCH_ROBOT_API_H_
-
