@@ -124,5 +124,6 @@ class RobotApi {
   actionlib::SimpleActionServer<code_it_msgs::SlipGripperAction> slip_gripper_server_;
   actionlib::SimpleActionServer<code_it_msgs::EmptyAction> reset_sensors_server_;
 };
+
 }  // namespace code_it_fetch
 #endif  // _CODE_IT_FETCH_ROBOT_API_H_
