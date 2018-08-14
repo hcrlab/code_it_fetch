@@ -7,6 +7,7 @@
 #include "map_annotator/GoToLocationAction.h"
 #include "rapid_fetch/fetch.h"
 #include "rapid_pbd_msgs/ExecuteProgramAction.h"
+#include "std_msgs/String.h"
 
 using code_it_fetch::RobotApi;
 
@@ -18,6 +19,13 @@ void locationCallback(
 void posesCallback(const map_annotator::PoseNames::ConstPtr& msg) {
   for (unsigned int i = 0; i < msg->names.size(); i++) {
     code_it_fetch::location_names.insert(msg->names[i]);
+  }
+}
+
+void speechCallback(const std_msgs::String::ConstPtr& msg) {
+  if (code_it_fetch::collectingSpeech) {
+    code_it_fetch::speech +=  msg -> data + " "; 
+    ROS_WARN_STREAM(code_it_fetch::speech); 
   }
 }
 
@@ -75,6 +83,8 @@ int main(int argc, char** argv) {
       nh.subscribe("/amcl_pose", 10, locationCallback);
   ros::Subscriber poses_sub =
       nh.subscribe("/map_annotator/pose_names", 10, posesCallback);
+  ros::Subscriber speech_sub =
+      nh.subscribe("/recognizer/output", 10, speechCallback);	  
   spinner.start();
 
   rapid::fetch::Fetch* robot = rapid::fetch::BuildReal();

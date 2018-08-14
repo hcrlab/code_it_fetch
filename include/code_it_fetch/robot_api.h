@@ -57,6 +57,10 @@ float r_gripper_pos_old = 1;
 float r_gripper_vel_old = 1;
 const float GRIPPER_VEL_TOLERANCE = 0.001; // 10^-3 -- we observed that gripper motion while still was around 10^-7 (note that floats have ~7 decimal precision)
 
+//global variables for speech detection
+bool collectingSpeech = true; // later initialize to false 
+string speech = "";
+
 class RobotApi {
  public:
   // Does not take ownership of the Fetch pointer.
