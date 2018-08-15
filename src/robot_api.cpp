@@ -73,7 +73,12 @@ RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
       slip_gripper_server_("/code_it/api/slip_gripper",
                           boost::bind(&RobotApi::SlipGripper, this, _1), false),
       reset_sensors_server_("/code_it/api/reset_sensors", 
-		      boost::bind(&RobotApi::ResetSensors, this, _1), false) {
+			    boost::bind(&RobotApi::ResetSensors, this, _1), false), 
+      collect_speech_server_("/code_it/api/collect_speech",
+			     boost::bind(&RobotApi::CollectSpeech, this, _1), false),
+      speech_contains_server_("/code_it/api/speech_contains",
+			      boost::bind(&RobotApi::SpeechContains, this, _1), false)
+       {
   ask_mc_server_.start();
   display_message_server_.start();
   get_loc_server_.start();
@@ -85,6 +90,8 @@ RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
   set_torso_server_.start();
   slip_gripper_server_.start();
   reset_sensors_server_.start();
+  collect_speech_server_.start();
+  speech_contains_server_.start();
 }
 
 void RobotApi::AskMC(const code_it_msgs::AskMultipleChoiceGoalConstPtr &goal) {
@@ -457,6 +464,18 @@ void RobotApi::ResetSensors(const code_it_msgs::EmptyGoalConstPtr& goal){
   
   code_it_msgs::EmptyResult res;
   reset_sensors_server_.setSucceeded(res);
+}
+
+void RobotApi::CollectSpeech(const code_it_msgs::CollectSpeechGoalConstPtr& goal) {
+  code_it_msgs::CollectSpeechResult res;
+  res.data = "HI";
+  collect_speech_server_.setSucceeded(res); 
+}
+
+void RobotApi::SpeechContains(const code_it_msgs::SpeechContainsGoalConstPtr& goal) {
+  code_it_msgs::SpeechContainsResult res;
+  res.contains = true;
+  speech_contains_server_.setSucceeded(res); 
 }
 
 }  // namespace code_it_fetch

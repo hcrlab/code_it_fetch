@@ -40,7 +40,7 @@ void jointCallback(const sensor_msgs::JointState::ConstPtr& msg) {
     // new data. we don't update our maps unless there is new (non-zero) data.
     if (msg->position[i] != 0) {
       code_it_fetch::positions[msg->name[i]] = msg->position[i];
-    }
+      }
   }
   
   //updating whether the gripper has slipped
