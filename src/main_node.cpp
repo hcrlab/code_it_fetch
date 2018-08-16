@@ -25,7 +25,6 @@ void posesCallback(const map_annotator::PoseNames::ConstPtr& msg) {
 void speechCallback(const std_msgs::String::ConstPtr& msg) {
   if (code_it_fetch::collectingSpeech) {
     code_it_fetch::speech +=  msg -> data + " "; 
-    ROS_WARN_STREAM(code_it_fetch::speech); 
   }
 }
 

@@ -467,14 +467,48 @@ void RobotApi::ResetSensors(const code_it_msgs::EmptyGoalConstPtr& goal){
 }
 
 void RobotApi::CollectSpeech(const code_it_msgs::CollectSpeechGoalConstPtr& goal) {
+  ROS_WARN("started collecting speech");
+  collectingSpeech = true;
+  int time = goal -> time;
   code_it_msgs::CollectSpeechResult res;
-  res.data = "HI";
-  collect_speech_server_.setSucceeded(res); 
+
+  //time can only be between 0 and 60 seconds
+  if (time > 60) {
+    time = 60;
+  } else if (time < 0) {
+    time = 0;
+  }
+  
+  ROS_WARN("before sleep");
+  ros::Duration(time).sleep(); 
+  ROS_WARN("after sleep");
+  //send result
+  if (!collect_speech_server_.isPreemptRequested() && ros::ok()) {
+      res.data = speech;
+      collect_speech_server_.setSucceeded(res);
+  }
+    
+  //reset data variables
+  collectingSpeech = false;
+  speech = "";
 }
 
 void RobotApi::SpeechContains(const code_it_msgs::SpeechContainsGoalConstPtr& goal) {
+  ROS_WARN("speech contains test"); 
   code_it_msgs::SpeechContainsResult res;
-  res.contains = true;
+  string speech_data = goal -> speech_data;
+  string program_input = goal -> program_input;
+  ROS_WARN_STREAM("speech_data" + speech_data);
+  ROS_WARN_STREAM("program_input" + program_input);
+  //program_input = program_input.toLowerCase();
+  
+  if (speech_data.find(program_input) != string::npos) { //string.find returns string::npos if its not a substring
+    res.contains = true;
+    ROS_WARN("found substring!");
+  } else {
+    res.contains = false;
+    ROS_WARN("didn't find substring :(");
+  }
   speech_contains_server_.setSucceeded(res); 
 }
 
