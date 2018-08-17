@@ -33,6 +33,9 @@ void jointCallback(const sensor_msgs::JointState::ConstPtr& msg) {
     if (msg->position[i] != 0) {
       code_it_fetch::positions[msg->name[i]] = msg->position[i];
     }
+    if (msg->velocity[i] != 0) {
+      code_it_fetch::velocities[msg->name[i]] = msg->velocity[i];
+    }
   }
   
   //updating whether the gripper has slipped
