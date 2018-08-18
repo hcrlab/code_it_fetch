@@ -1,0 +1,41 @@
+<s> HELLO ASTRO </s>
+<s> MOVE HEAD UP </s>
+<s> MOVE HEAD DOWN </s>
+<s> MOVE HEAD RIGHT </s>
+<s> MOVE HEAD LEFT </s>
+<s> TURN RIGHT </s>
+<s> TURN LEFT </s>
+<s> LOOK UP </s>
+<s> LOOK DOWN </s>
+<s> LOOK RIGHT </s>
+<s> LOOK LEFT </s>
+<s> MOVE TORSO UP </s>
+<s> MOVE TORSO DOWN </s>
+<s> MOVE BASE FORWARDS </s>
+<s> MOVE BASE BACKWARDS </s>
+<s> MOVE BASE TO A LOCATION </s>
+<s> GO TO LOCATION </s>
+<s> TUCK ARM </s>
+<s> UN-TUCK ARM </s>
+<s> REACH FOR OBJECT </s>
+<s> OPEN GRIPPER </s>
+<s> CLOSE GRIPPER </s>
+<s> GRASP OBJECT </s>
+<s> RELEASE OBJECT </s>
+<s> RUN RAPIDPBD PROGRAM </s>
+<s> SAY HELLO </s>
+<s> SAY GOODBYE </s>
+<s> SAY GOOD MORNING </s>
+<s> SAY HOW ARE YOU </s>
+<s> STOP </s>
+<s> CANCEL ALL GOALS </s>
+<s> CANCEL HEAD </s>
+<s> CANCEL TORSO </s>
+<s> CANCEL GRIPPER </s>
+<s> CANCEL RAPIDPBD PROGRAM </s>
+<s> CANCEL QUESTION </s>
+<s> CANCEL NAVIGATION </s>
+<s> CANCEL TIMER </s>
+<s> DISPLAY MESSAGE </s>
+<s> ASK A QUESTION </s>
+<s> WAIT </s>

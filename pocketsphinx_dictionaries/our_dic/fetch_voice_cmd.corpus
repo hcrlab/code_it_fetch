@@ -1,0 +1,41 @@
+hello astro
+move head up
+move head down
+move head right
+move head left
+turn right
+turn left
+look up
+look down
+look right
+look left
+move torso up
+move torso down
+move base forwards
+move base backwards
+move base to a location
+go to location
+tuck arm
+un-tuck arm
+reach for object
+open gripper
+close gripper
+grasp object
+release object
+run rapidpbd program
+say hello
+say goodbye
+say good morning
+say how are you
+stop
+cancel all goals
+cancel head
+cancel torso
+cancel gripper
+cancel rapidpbd program
+cancel question
+cancel navigation
+cancel timer
+display message
+ask a question
+wait
