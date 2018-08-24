@@ -20,6 +20,7 @@
 #include "code_it_msgs/SetTorsoAction.h"
 #include "code_it_msgs/SlipGripperAction.h" 
 #include "code_it_msgs/CollectSpeechAction.h"
+#include "code_it_msgs/CollectSpeechWakeWordAction.h"
 #include "code_it_msgs/SpeechContainsAction.h"
 #include "code_it_msgs/EmptyAction.h"
 #include "control_msgs/FollowJointTrajectoryAction.h"
@@ -63,6 +64,8 @@ const float GRIPPER_VEL_TOLERANCE = 0.001; // 10^-3 -- we observed that gripper 
 bool collectingSpeech = false;
 string speech = "";
 
+//global variables for speech detection with wake word
+string latest_speech = "";
 class RobotApi {
  public:
   // Does not take ownership of the Fetch pointer.
@@ -98,6 +101,7 @@ class RobotApi {
   void SlipGripper(const code_it_msgs::SlipGripperGoalConstPtr& goal);
   void ResetSensors(const code_it_msgs::EmptyGoalConstPtr& goal);
   void CollectSpeech(const code_it_msgs::CollectSpeechGoalConstPtr& goal);
+  void CollectSpeechWakeWord(const code_it_msgs::CollectSpeechWakeWordGoalConstPtr& goal);
   void SpeechContains(const code_it_msgs::SpeechContainsGoalConstPtr& goal); 
 
  private:
@@ -131,6 +135,7 @@ class RobotApi {
   actionlib::SimpleActionServer<code_it_msgs::SlipGripperAction> slip_gripper_server_;
   actionlib::SimpleActionServer<code_it_msgs::EmptyAction> reset_sensors_server_;
   actionlib::SimpleActionServer<code_it_msgs::CollectSpeechAction> collect_speech_server_;
+  actionlib::SimpleActionServer<code_it_msgs::CollectSpeechWakeWordAction> collect_speech_wake_word_server_;
   actionlib::SimpleActionServer<code_it_msgs::SpeechContainsAction> speech_contains_server_;
 };
 }  // namespace code_it_fetch

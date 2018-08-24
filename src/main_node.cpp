@@ -23,9 +23,13 @@ void posesCallback(const map_annotator::PoseNames::ConstPtr& msg) {
 }
 
 void speechCallback(const std_msgs::String::ConstPtr& msg) {
+  //speech detection with wake word
+  code_it_fetch::latest_speech = msg -> data;
+  //speech detection without wake word
   if (code_it_fetch::collectingSpeech) {
     code_it_fetch::speech +=  msg -> data + " "; 
   }
+
 }
 
 void jointCallback(const sensor_msgs::JointState::ConstPtr& msg) {

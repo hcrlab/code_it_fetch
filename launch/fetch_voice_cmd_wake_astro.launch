@@ -1,0 +1,9 @@
+<launch>
+  
+  <node name="recognizer" pkg="pocketsphinx" type="recognizer.py" output="screen">
+    <param name="lm" value="$(find code_it_fetch)/pocketsphinx_dictionaries/astro_wake_word_dic/fetch_voice_cmd_wake_astro.lm"/>
+    <param name="dict" value="$(find code_it_fetch)/pocketsphinx_dictionaries/astro_wake_word_dic/fetch_voice_cmd_wake_astro.dic"/>
+  </node>
+
+</launch>
+

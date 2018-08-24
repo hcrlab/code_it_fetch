@@ -4,6 +4,7 @@
 #include <cmath>
 #include <string>
 #include <set>
+#include <boost/algorithm/string.hpp>
 
 #include "actionlib/client/simple_action_client.h"
 #include "actionlib/client/simple_client_goal_state.h"
@@ -76,6 +77,8 @@ RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
 			    boost::bind(&RobotApi::ResetSensors, this, _1), false), 
       collect_speech_server_("/code_it/api/collect_speech",
 			     boost::bind(&RobotApi::CollectSpeech, this, _1), false),
+      collect_speech_wake_word_server_("/code_it/api/collect_speech_wake_word",
+				       boost::bind(&RobotApi::CollectSpeechWakeWord, this, _1), false),
       speech_contains_server_("/code_it/api/speech_contains",
 			      boost::bind(&RobotApi::SpeechContains, this, _1), false)
        {
@@ -91,6 +94,7 @@ RobotApi::RobotApi(rapid::fetch::Fetch *robot, BlinkyClient *blinky_client,
   slip_gripper_server_.start();
   reset_sensors_server_.start();
   collect_speech_server_.start();
+  collect_speech_wake_word_server_.start();
   speech_contains_server_.start();
 }
 
@@ -461,7 +465,9 @@ void RobotApi::ResetSensors(const code_it_msgs::EmptyGoalConstPtr& goal){
   l_gripper_vel_old = 1; 
   r_gripper_pos_old = 1;
   r_gripper_vel_old = 1;
-  
+  speech = "";
+  latest_speech = "";
+
   code_it_msgs::EmptyResult res;
   reset_sensors_server_.setSucceeded(res);
 }
@@ -479,9 +485,7 @@ void RobotApi::CollectSpeech(const code_it_msgs::CollectSpeechGoalConstPtr& goal
     time = 0;
   }
   
-  ROS_WARN("before sleep");
   ros::Duration(time).sleep(); 
-  ROS_WARN("after sleep");
   //send result
   if (!collect_speech_server_.isPreemptRequested() && ros::ok()) {
       res.data = speech;
@@ -493,21 +497,35 @@ void RobotApi::CollectSpeech(const code_it_msgs::CollectSpeechGoalConstPtr& goal
   speech = "";
 }
 
+void RobotApi::CollectSpeechWakeWord(const code_it_msgs::CollectSpeechWakeWordGoalConstPtr& goal) {
+  ROS_WARN("started collecting speech, waiting for wake word");
+  code_it_msgs::CollectSpeechWakeWordResult res;
+  string wake_word = goal -> wake_word;
+  wake_word = boost::algorithm::to_lower_copy(wake_word);
+  latest_speech = ""; //reset latest speech so it doesn't trigger if last phrase had wake word in it
+  while (latest_speech.find(wake_word) == string::npos) { //string.find returns string::npos if it's not a substring
+  
+    if (collect_speech_wake_word_server_.isPreemptRequested() || !ros::ok()) { 
+      collect_speech_wake_word_server_.setPreempted();
+      return;
+      }
+    ros::Duration(0.1).sleep();
+  }
+  res.data = latest_speech;
+  collect_speech_wake_word_server_.setSucceeded(res);
+}
+
 void RobotApi::SpeechContains(const code_it_msgs::SpeechContainsGoalConstPtr& goal) {
   ROS_WARN("speech contains test"); 
   code_it_msgs::SpeechContainsResult res;
   string speech_data = goal -> speech_data;
   string program_input = goal -> program_input;
-  ROS_WARN_STREAM("speech_data" + speech_data);
-  ROS_WARN_STREAM("program_input" + program_input);
-  //program_input = program_input.toLowerCase();
-  
-  if (speech_data.find(program_input) != string::npos) { //string.find returns string::npos if its not a substring
+  program_input = boost::algorithm::to_lower_copy(program_input);
+
+  if (speech_data.find(program_input) != string::npos) { //string.find returns string::npos if it's not a substring
     res.contains = true;
-    ROS_WARN("found substring!");
   } else {
     res.contains = false;
-    ROS_WARN("didn't find substring :(");
   }
   speech_contains_server_.setSucceeded(res); 
 }

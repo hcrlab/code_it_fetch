@@ -1,0 +1,41 @@
+hello astro
+astro move head up
+astro move head down
+astro move head right
+astro move head left
+astro turn right
+astro turn left
+astro look up
+astro look down
+astro look right
+astro look left
+astro move torso up
+astro move torso down
+astro move base forwards
+astro move base backwards
+astro move base to a location
+astro go to location
+astro tuck arm
+astro un-tuck arm
+astro reach for object
+astro open gripper
+astro close gripper
+astro grasp object
+astro release object
+astro run rapidpbd program
+astro say hello
+astro say goodbye
+astro say good morning
+astro say how are you
+astro stop
+astro cancel all goals
+astro cancel head
+astro cancel torso
+astro cancel gripper
+astro cancel rapidpbd program
+astro cancel question
+astro cancel navigation
+astro cancel timer
+astro display message
+astro ask a question
+astro wait

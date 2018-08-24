@@ -1,8 +1,8 @@
 <launch>
   
   <node name="recognizer" pkg="pocketsphinx" type="recognizer.py" output="screen">
-    <param name="lm" value="$(find code_it_fetch)/pocketsphinx_dictionaries/our_dic/fetch_voice_cmd.lm"/>
-    <param name="dict" value="$(find code_it_fetch)/pocketsphinx_dictionaries/our_dic/fetch_voice_cmd.dic"/>
+    <param name="lm" value="$(find code_it_fetch)/pocketsphinx_dictionaries/first_dic/fetch_voice_cmd.lm"/>
+    <param name="dict" value="$(find code_it_fetch)/pocketsphinx_dictionaries/first_dic/fetch_voice_cmd.dic"/>
   </node>
 
 </launch>
