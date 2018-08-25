@@ -29,7 +29,6 @@ void speechCallback(const std_msgs::String::ConstPtr& msg) {
   if (code_it_fetch::collectingSpeech) {
     code_it_fetch::speech +=  msg -> data + " "; 
   }
-
 }
 
 void jointCallback(const sensor_msgs::JointState::ConstPtr& msg) {
@@ -43,7 +42,10 @@ void jointCallback(const sensor_msgs::JointState::ConstPtr& msg) {
     // new data. we don't update our maps unless there is new (non-zero) data.
     if (msg->position[i] != 0) {
       code_it_fetch::positions[msg->name[i]] = msg->position[i];
-      }
+    }
+    if (msg->velocity[i] != 0) {
+      code_it_fetch::velocities[msg->name[i]] = msg->velocity[i];
+    }
   }
   
   //updating whether the gripper has slipped

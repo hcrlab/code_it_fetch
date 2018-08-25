@@ -347,6 +347,7 @@ void RobotApi::SetGripper(const code_it_msgs::SetGripperGoalConstPtr &goal) {
   int MAX_EFFORT = 100;
 
   int action = goal->action;
+  gripperSlipped = false;
 
   control_msgs::GripperCommandGoal gripper_goal;
   if (action == 1) {
