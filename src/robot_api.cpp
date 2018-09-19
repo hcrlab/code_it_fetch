@@ -446,13 +446,11 @@ float RobotApi::GetCurrentPos(const string joint_name) {
 }
 
 float RobotApi::GetCurrentVel(const string joint_name) {
-  //float vel = 0;
   float vel = velocities[joint_name]; //returns 0 if joint name doesn't exist in velocities, and inserts a new key joint_name into the map (with value 0)
   return vel;
 }
 
 void RobotApi::SlipGripper(const code_it_msgs::SlipGripperGoalConstPtr& goal) {
- 
   code_it_msgs::SlipGripperResult res;
   res.slipped = gripperSlipped;
   slip_gripper_server_.setSucceeded(res);
@@ -460,7 +458,6 @@ void RobotApi::SlipGripper(const code_it_msgs::SlipGripperGoalConstPtr& goal) {
 }
 
 void RobotApi::ResetSensors(const code_it_msgs::EmptyGoalConstPtr& goal){
-  
   gripperSlipped = false;
   l_gripper_pos_old = 1;
   l_gripper_vel_old = 1; 
