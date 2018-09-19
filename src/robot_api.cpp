@@ -485,14 +485,26 @@ void RobotApi::CollectSpeech(const code_it_msgs::CollectSpeechGoalConstPtr& goal
   } else if (time < 0) {
     time = 0;
   }
-  
-  ros::Duration(time).sleep(); 
+
+  while (time != 0) {
+    if (collect_speech_server_.isPreemptRequested() || !ros::ok()) {
+      collect_speech_server_.setPreempted();
+      collectingSpeech = false;
+      speech = "";
+      return;
+    }
+    ros::Duration(1.0).sleep();
+    time--;
+  }
+
   //send result
   if (!collect_speech_server_.isPreemptRequested() && ros::ok()) {
-      res.data = speech;
-      collect_speech_server_.setSucceeded(res);
+    res.data = speech;
+    collect_speech_server_.setSucceeded(res);
+  } else {
+    collect_speech_server_.setPreempted();
   }
-    
+ 
   //reset data variables
   collectingSpeech = false;
   speech = "";
@@ -509,7 +521,7 @@ void RobotApi::CollectSpeechWakeWord(const code_it_msgs::CollectSpeechWakeWordGo
     if (collect_speech_wake_word_server_.isPreemptRequested() || !ros::ok()) { 
       collect_speech_wake_word_server_.setPreempted();
       return;
-      }
+    }
     ros::Duration(0.1).sleep();
   }
   res.data = latest_speech;
