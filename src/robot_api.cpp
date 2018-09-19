@@ -486,7 +486,6 @@ void RobotApi::CollectSpeech(const code_it_msgs::CollectSpeechGoalConstPtr& goal
     time = 0;
   }
 
-  //ros::Duration(time).sleep();
   while (time != 0) {
     if (collect_speech_server_.isPreemptRequested() || !ros::ok()) {
       collect_speech_server_.setPreempted();
